@@ -1,0 +1,29 @@
+<macro name="testmacro" xmlns="http://www.openmashup.org/schemas/v1.0/EMML" xmlns:presto="http://www.jackbe.com/v1.0/EMMLPrestoExtensions" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <input name="resultstr" type="document"/>
+  <output name="result" type="document"/>
+  
+  <variables>
+    <variable name="xx" type="document">
+      <xx>
+        <item>
+          <aa>3</aa>
+        </item>
+        <item>
+          <aa>4</aa>
+        </item>
+      </xx>
+    </variable>
+  </variables>
+  
+  <script inputvariables="resultstr" outputvariable="resultstr" type="text/javascript">
+    <![CDATA[
+            var res = new Packages.java.lang.String(resultstr);
+            res = res.replaceAll("HTML" , "html")
+           resultstr = res;
+    ]]>
+    </script>
+
+    <assign fromvariable="xx" outputvariable="result"/>
+  
+</macro>

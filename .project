@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+	<name>navteq_poc</name>
+	<comment></comment>
+	<projects>
+	</projects>
+	<buildSpec>
+	</buildSpec>
+	<natures>
+		<nature>com.jackbe.mashup.studio.project.nature_ID</nature>
+	</natures>
+</projectDescription>
