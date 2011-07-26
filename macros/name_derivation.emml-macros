@@ -1,0 +1,107 @@
+<!-- 
+	BUSINESS RULE FOR MACRO
+	=======================
+	Based on analysis of the raw data, logic for name derivation was created:
+		+ For each record, if TradeStyle120 exists, use this as the official POI name
+		+ If TradeStyle120 does not exist, use the POI_Name field
+		+ This derived POI name is appended to the existing source data
+	
+	/Americo
+ -->
+<macro 
+	name="name_derivation" 
+	xmlns="http://www.openmashup.org/schemas/v1.0/EMML"
+	xmlns:presto="http://www.jackbe.com/v1.0/EMMLPrestoExtensions"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	
+	<!-- XML input -->
+	<input name="macro_input" type="document" />
+	<input name="new_field_name" type="string" default="new_name_derivation" />
+	
+	<output name="result" type="document" />
+
+	<variables>
+		<!-- SETUP Variables -->
+		<variable name="repetitive_item" type="string" default="item"/>
+	
+		<!-- test_data -->
+		<variable name="test_data" type="document">
+			<root>
+				<item>
+					<DUNS>111</DUNS>
+					<SIC1>222</SIC1>
+					<LOB>333</LOB>
+					<POINAME>This is a POINAME</POINAME>
+					<TRDSTYL120></TRDSTYL120>
+				</item>
+				<item>
+					<DUNS>444</DUNS>
+					<SIC1>555</SIC1>
+					<LOB>666</LOB>
+					<POINAME>This is a POINAME2</POINAME>
+					<TRDSTYL120>This is a TRDSTYL120</TRDSTYL120>
+				</item>
+			</root>
+		</variable>
+	</variables>
+
+	<!-- 
+	<script inputvariables="resultstr" outputvariable="resultstr"
+		type="text/javascript">
+    <![CDATA[
+
+    ]]>
+	</script>
+	 -->
+	
+	<!-- CHECK TEST OR REAL DATA: Check if using testdata, and from this moment on just use: 'macro_input' to refer to both test and real data -->
+	<if condition="$macro_input = ''">
+		<!-- <display message="empty use test data" />-->
+		<assign fromvariable="test_data" outputvariable="macro_input"/>
+	</if>
+
+	<!-- MACRO LOGIC -->
+	<variable name="item_counter" type="number" default="0"/>
+	<foreach items="$macro_input//{$repetitive_item}" variable="item">
+		<!-- <display message="item:" variable="item" />-->
+		
+		<script type="text/javascript">
+    	<![CDATA[
+			item_counter++;
+	    ]]>
+		</script>
+		
+		
+		<!-- "...For each record, if TradeStyle120 exists, use this as the official POI name, if not use POI name" -->
+		<assign fromexpr="$item//TRDSTYL120/node()" outputvariable="trd"/>
+		<assign fromexpr="$item//POINAME/node()" outputvariable="poi"/>
+
+		<if condition="$trd != '' ">
+			<assign fromvariable="trd" outputvariable="final_poiname"/>
+			<display message="final_poiname:" variable="final_poiname" />
+			
+			<annotate variable="macro_input" expr="/root/{$repetitive_item}[{$item_counter}]" >
+       				element {$new_field_name} {$final_poiname}
+   				</annotate>
+   				
+			<else>
+				<assign fromvariable="poi" outputvariable="final_poiname"/>
+				<display message="final_poiname:" variable="final_poiname" />
+				
+				<annotate variable="macro_input" expr="/root/{$repetitive_item}[{$item_counter}]" >
+       				element {$new_field_name} {$final_poiname}
+   				</annotate>
+			</else>
+		</if>
+					
+		
+		
+	</foreach>
+
+	<!-- ENDING MACRO -->
+	<!-- mashed_data will contain the final result of this macro-->
+	<assign fromvariable="macro_input" outputvariable="mashed_data" />
+	<!-- and result will be what the macro will output -->
+	<assign fromvariable="mashed_data" outputvariable="result" />
+
+</macro>
