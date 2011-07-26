@@ -12,7 +12,9 @@
 	name="name_derivation" 
 	xmlns="http://www.openmashup.org/schemas/v1.0/EMML"
 	xmlns:presto="http://www.jackbe.com/v1.0/EMMLPrestoExtensions"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	
+	xmlns:e="http://www.jackbe.com/presto/2009/excel">
 	
 	<!-- XML input -->
 	<input name="macro_input" type="document" />
@@ -22,26 +24,26 @@
 
 	<variables>
 		<!-- SETUP Variables -->
-		<variable name="repetitive_item" type="string" default="item"/>
+		<variable name="repetitive_item" type="string" default="Entry"/>
 	
 		<!-- test_data -->
 		<variable name="test_data" type="document">
-			<root>
-				<item>
+			<e:DataTable xmlns:e="http://www.jackbe.com/presto/2009/excel">
+				<e:Entry>
 					<DUNS>111</DUNS>
 					<SIC1>222</SIC1>
 					<LOB>333</LOB>
 					<POINAME>This is a POINAME</POINAME>
 					<TRDSTYL120></TRDSTYL120>
-				</item>
-				<item>
+				</e:Entry>
+				<e:Entry>
 					<DUNS>444</DUNS>
 					<SIC1>555</SIC1>
 					<LOB>666</LOB>
 					<POINAME>This is a POINAME2</POINAME>
 					<TRDSTYL120>This is a TRDSTYL120</TRDSTYL120>
-				</item>
-			</root>
+				</e:Entry>
+			</e:DataTable>
 		</variable>
 	</variables>
 
@@ -62,7 +64,7 @@
 
 	<!-- MACRO LOGIC -->
 	<variable name="item_counter" type="number" default="0"/>
-	<foreach items="$macro_input//{$repetitive_item}" variable="item">
+	<foreach items="$macro_input//*:{$repetitive_item}" variable="item">
 		<!-- <display message="item:" variable="item" />-->
 		
 		<script type="text/javascript">
@@ -80,7 +82,7 @@
 			<assign fromvariable="trd" outputvariable="final_poiname"/>
 			<display message="final_poiname:" variable="final_poiname" />
 			
-			<annotate variable="macro_input" expr="/root/{$repetitive_item}[{$item_counter}]" >
+			<annotate variable="macro_input" expr="/*:DataTable/*:{$repetitive_item}[{$item_counter}]" >
        				element {$new_field_name} {$final_poiname}
    				</annotate>
    				
@@ -88,7 +90,7 @@
 				<assign fromvariable="poi" outputvariable="final_poiname"/>
 				<display message="final_poiname:" variable="final_poiname" />
 				
-				<annotate variable="macro_input" expr="/root/{$repetitive_item}[{$item_counter}]" >
+				<annotate variable="macro_input" expr="/*:DataTable/*:{$repetitive_item}[{$item_counter}]" >
        				element {$new_field_name} {$final_poiname}
    				</annotate>
 			</else>
