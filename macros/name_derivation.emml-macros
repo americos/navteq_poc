@@ -99,4 +99,4 @@
   <!-- and result will be what the macro will output -->
   <assign fromvariable="mashed_data" outputvariable="result"/>
 
-</macro>​
+</macro>
