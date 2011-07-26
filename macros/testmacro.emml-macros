@@ -4,26 +4,32 @@
   <output name="result" type="document"/>
   
   <variables>
-    <variable name="xx" type="document">
-      <xx>
-        <item>
-          <aa>3</aa>
-        </item>
-        <item>
-          <aa>4</aa>
-        </item>
-      </xx>
+    <variable name="test_data" type="document">
+      	<root>
+			<item>
+				<DUNS>111</DUNS>
+				<SIC1>222</SIC1>
+				<LOB>333</LOB>
+				<POINAME>This is a POINAME</POINAME>
+				<TRDSTYL120></TRDSTYL120>
+			</item>
+			<item>
+				<DUNS>444</DUNS>
+				<SIC1>555</SIC1>
+				<LOB>666</LOB>
+				<POINAME>This is a POINAME2</POINAME>
+				<TRDSTYL120>This is a TRDSTYL120</TRDSTYL120>
+			</item>
+		</root>
     </variable>
   </variables>
   
   <script inputvariables="resultstr" outputvariable="resultstr" type="text/javascript">
     <![CDATA[
-            var res = new Packages.java.lang.String(resultstr);
-            res = res.replaceAll("HTML" , "html")
-           resultstr = res;
+
     ]]>
     </script>
 
-    <assign fromvariable="xx" outputvariable="result"/>
+    <assign fromvariable="test_data" outputvariable="result"/>
   
 </macro>
