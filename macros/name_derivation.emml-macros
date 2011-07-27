@@ -1,102 +1,107 @@
-<!-- 
-  BUSINESS RULE FOR MACRO
-  =======================
-  Based on analysis of the raw data, logic for name derivation was created:
-    + For each record, if TradeStyle120 exists, use this as the official POI name
-    + If TradeStyle120 does not exist, use the POI_Name field
-    + This derived POI name is appended to the existing source data
-  
-  /Americo
- --><macro name="name_derivation" xmlns="http://www.openmashup.org/schemas/v1.0/EMML" xmlns:e="http://www.jackbe.com/presto/2009/excel" xmlns:presto="http://www.jackbe.com/v1.0/EMMLPrestoExtensions" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  
-  <!-- XML input -->
-  <input name="macro_input" type="document"/>
-  <input default="new_name_derivation" name="new_field_name" type="string"/>
-  
-  <output name="result" type="document"/>
+<!--
+	BUSINESS RULE FOR MACRO 
+	======================= 
+	Based on analysis of the raw data, logic for name derivation was created: 
+	+ For each record, if TradeStyle120 exists, use this as the official POI name 
+	+ If TradeStyle120 does not exist, use the POI_Name field 
+	+ This derived POI name is appended to the existing source data /Americo
+-->
+<macro name="name_derivation" xmlns="http://www.openmashup.org/schemas/v1.0/EMML"
+	xmlns:e="http://www.jackbe.com/presto/2009/excel" xmlns:presto="http://www.jackbe.com/v1.0/EMMLPrestoExtensions"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
-  <variables>
-    <!-- SETUP Variables -->
-    <variable default="Entry" name="repetitive_item" type="string"/>
-  
-    <!-- test_data -->
-    <variable name="test_data" type="document">
-      <e:DataTable xmlns:e="http://www.jackbe.com/presto/2009/excel">
-        <e:Entry>
-          <DUNS>111</DUNS>
-          <SIC1>222</SIC1>
-          <LOB>333</LOB>
-          <POINAME>This is a POINAME</POINAME>
-          <TRDSTYL120/>
-        </e:Entry>
-        <e:Entry>
-          <DUNS>444</DUNS>
-          <SIC1>555</SIC1>
-          <LOB>666</LOB>
-          <POINAME>This is a POINAME2</POINAME>
-          <TRDSTYL120>This is a TRDSTYL120</TRDSTYL120>
-        </e:Entry>
-      </e:DataTable>
-    </variable>
-  </variables>
+	<!-- XML input -->
+	<input name="macro_input" type="string" />
+	<input default="new_name_derivation" name="new_field_name" type="string" />
 
-  <!-- 
-  <script inputvariables="resultstr" outputvariable="resultstr"
-    type="text/javascript">
-    <![CDATA[
+	<output name="result" type="document" />
 
-    ]]>
-  </script>
-   -->
-  
-  <!-- CHECK TEST OR REAL DATA: Check if using testdata, and from this moment on just use: 'macro_input' to refer to both test and real data -->
-  <if condition="$macro_input = ''">
-    <!-- <display message="empty use test data" />-->
-    <assign fromvariable="test_data" outputvariable="macro_input"/>
-  </if>
+	<variables>
+		
+		<!-- test_data -->
+		<!-- CSV COLUMNS FROM SAMPLE FILE:
+			DUNS,SIC1,LOB,SIC1_DESC,SIC2,SIC2_DESC,SIC3,SIC3_DESC,SIC4,SIC4_DESC,SIC5,SIC5_DESC,SIC6,SIC6_DESC,ACD_IND,CHANGE_IND,POI_NAME,FRAN_CD,
+			FRAN_DESC,STREET_ADDRESS,HOUSE_NUMBER,STREET_PREFIX,STREETNAME,STREETTYPE,STREETSUFFIX,STREETLANG,COUNTRY_NAME,CITY,STATE,POSTALCODE,ADMINAREA,
+			FOODTYPE,CHAINID,PHONE,LATITUDE,LONGITUDE,GEO_ACCURACY,NAIC1,NAIC1_DESC,NAIC2,NAIC2_DESC,NAIC3,NAIC3_DESC,NAIC4,NAIC4_DESC,NAIC5,NAIC5_DESC,
+			NAIC6,NAIC6_DESC,STATUS,SUBSID,HIER,DIAS,TSTYLE1,FRAN_CD1,FRAN_DESC1,TSTYLE2,FRAN_CD2,FRAN_DESC2,TSTYLE3,FRAN_CD3,FRAN_DESC3,TSTYLE4,FRAN_CD4,
+			FRAN_DESC4,TSTYLE5,FRAN_CD5,FRAN_DESC5,GLOBAL_ULT,ULT_NAME,GLOBAL_PAR,PAR_NAME,SALES,EMPS_HERE,SQT_FOOTAGE,RPT_DATE,REC_CLASS,COTTAGE,DOM_ULT,
+			TRDSTYL120,MARKET_IND,ADDR_2,
+		-->
+		<variable name="csv_columns" type="string" default="DUNS,SIC1,LOB,SIC1_DESC,SIC2,SIC2_DESC,SIC3,SIC3_DESC,SIC4,SIC4_DESC,SIC5,SIC5_DESC,SIC6,SIC6_DESC,ACD_IND,CHANGE_IND,POI_NAME,FRAN_CD,FRAN_DESC,STREET_ADDRESS,HOUSE_NUMBER,STREET_PREFIX,STREETNAME,STREETTYPE,STREETSUFFIX,STREETLANG,COUNTRY_NAME,CITY,STATE,POSTALCODE,ADMINAREA,FOODTYPE,CHAINID,PHONE,LATITUDE,LONGITUDE,GEO_ACCURACY,NAIC1,NAIC1_DESC,NAIC2,NAIC2_DESC,NAIC3,NAIC3_DESC,NAIC4,NAIC4_DESC,NAIC5,NAIC5_DESC,NAIC6,NAIC6_DESC,STATUS,SUBSID,HIER,DIAS,TSTYLE1,FRAN_CD1,FRAN_DESC1,TSTYLE2,FRAN_CD2,FRAN_DESC2,TSTYLE3,FRAN_CD3,FRAN_DESC3,TSTYLE4,FRAN_CD4,FRAN_DESC4,TSTYLE5,FRAN_CD5,FRAN_DESC5,GLOBAL_ULT,ULT_NAME,GLOBAL_PAR,PAR_NAME,SALES,EMPS_HERE,SQT_FOOTAGE,RPT_DATE,REC_CLASS,COTTAGE,DOM_ULT,TRDSTYL120,MARKET_IND,ADDR_2, "/>
+		<variable name="test_data" type="string" default="317112647,51480000,FRESH FRUITS AND VEGETABLES,FRESH FRUITS AND VEGETABLES,,,,,,,,,,,A,9,HETTI JELAK,,,FREUDENBERGSTR. 41-57,,,,,,,GERMANY,BOCHUM,,44809,NORDRHEIN-WESTFALEN,,,,+00.000000,-000.000000,N,424480,FRESH FRUIT AND VEGETABLE MERC,,,,,,,,,,,0,0,00,,,,,,,,,,,,,,,,,317112647,HETTI JELAK,317112647,HETTI JELAK,000000000249758,000000001,00000000,020615,,,000000000,,,,"/>
+		<!--  <variable name="test_data" type="string" default='333908812,17310000,"ELECTRICAL WORK, NSK",ELECTRICAL WORK,57220200,ELECTRIC HOUSEHOLD APPLIANCES,,,,,,,,,A,9,EBERHARD NAKAT,,,HAMBURGER STR. 22A,,,,,,,GERMANY,LÜTJENSEE,,22952,SCHLESWIG-HOLSTEIN,,,41547175,+53.656557,+010.368284,S,238210,ELECTRICAL CONTRACTORS,443111,HOUSEHOLD APPLIANCE STORES,,,,,,,,,0,0,00,,ELEKTRO NAKAT,,,,,,,,,,,,,,,333908812,EBERHARD NAKAT,333908812,EBERHARD NAKAT,000000001768320,000000010,00000000,100917,,,000000000,ELEKTRO NAKAT,M,,' /> -->
+	</variables>
 
-  <!-- MACRO LOGIC -->
-  <variable default="0" name="item_counter" type="number"/>
-  <foreach items="$macro_input//*:{$repetitive_item}" variable="item">
-    <!-- <display message="item:" variable="item" />-->
-    
-    <script type="text/javascript">
-      <![CDATA[
-      item_counter++;
-      ]]>
-    </script>
-    
-    
-    <!-- "...For each record, if TradeStyle120 exists, use this as the official POI name, if not use POI name" -->
-    <assign fromexpr="$item//TRDSTYL120/node()" outputvariable="trd"/>
-    <assign fromexpr="$item//POINAME/node()" outputvariable="poi"/>
-
-    <if condition="$trd != '' ">
-      <assign fromvariable="trd" outputvariable="final_poiname"/>
-      <display message="final_poiname:" variable="final_poiname"/>
-      
-      <annotate expr="/*:DataTable/*:{$repetitive_item}[{$item_counter}]" variable="macro_input">
-               element {$new_field_name} {$final_poiname}
-           </annotate>
-           
-      <else>
-        <assign fromvariable="poi" outputvariable="final_poiname"/>
-        <display message="final_poiname:" variable="final_poiname"/>
-        
-        <annotate expr="/*:DataTable/*:{$repetitive_item}[{$item_counter}]" variable="macro_input">
-               element {$new_field_name} {$final_poiname}
-           </annotate>
-      </else>
-    </if>
-          
-    
-    
-  </foreach>
-
-  <!-- ENDING MACRO -->
-  <!-- mashed_data will contain the final result of this macro-->
-  <assign fromvariable="macro_input" outputvariable="mashed_data"/>
-  <!-- and result will be what the macro will output -->
-  <assign fromvariable="mashed_data" outputvariable="result"/>
+	
+	<!--
+		CHECK TEST OR REAL DATA: Check if using testdata, and from this moment
+		on just use: 'macro_input' to refer to both test and real data
+	-->
+	<if condition="$macro_input = ''">
+		<!-- <display message="empty use test data" />-->
+		<assign fromvariable="test_data" outputvariable="macro_input" />
+	</if>
+	
+	
+		<!-- TEST script to get the column name -->
+		<variable name="xml_string" type="string" default="" />
+		<script type="text/javascript"> 
+		<![CDATA[
+			
+			var columns_split = csv_columns.split(",");
+			var data_split = macro_input.split(",");
+			
+			xml_string = "<item>";
+			
+			//print("Total Columns: " + columns_split.length);
+			
+			var item_name = "";
+			var item_value = "";
+			var new_value = ""; //This is the value that is going to be added as a new column
+			
+			for(var i = 0; i< columns_split.length; i++){
+				item_name = columns_split[i];
+				item_value = data_split[i];
+				
+				//Uncomment the line below to check the column number
+				//print(i +" : "+ item_name);
+				
+				if(item_name != ""){
+				
+					/*****************************************************************
+					* "...For each record, if TradeStyle120 exists, use this as the
+					* official POI name, if not use POI name"
+					*
+					******************************************************************/
+					if(i == 79){  //79 is TRDSTYL120
+					
+						if(item_value == ""){
+							//Empty, use POINAME in 16
+							new_value = data_split[16];
+						}
+						else{
+							//Has value, so use it.
+							new_value = item_value
+						}
+						
+					}
+					
+					xml_string = xml_string + "<" + columns_split[i] + ">" + item_value +"</" + columns_split[i] + ">";
+					
+					
+				}
+			}
+			
+			//HERE Comes the new element
+			xml_string += "<" + new_field_name + ">" + new_value + "</" + new_field_name + ">"
+			
+			xml_string += "</item>";
+			
+			print("xml_string:"+ xml_string);
+		 ]]> </script>
+		  
+		<variable name="xml_doc" type="document" default=""/>
+		<assign fromvariable="xml_string" outputvariable="result" />
+		 	
 
 </macro>

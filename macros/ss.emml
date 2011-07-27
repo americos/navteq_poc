@@ -1,0 +1,15 @@
+<mashup 
+	xmlns:xsi= "http://www.w3.org/2001/XMLSchema-instance" 
+ 	 xsi:schemaLocation="http://www.openmashup.org/schemas/v1.0/EMML/../schemas/EMMLPrestoSpec.xsd" 
+ 	 xmlns="http://www.openmashup.org/schemas/v1.0/EMML" 
+ 	 xmlns:macro="http://www.openmashup.org/schemas/v1.0/EMMLMacro" 
+ 	 name = "ss" >
+
+	<if condition="">
+	<elseif condition=""></elseif>
+	<else></else>
+	</if>
+	<assign fromvariable="" outputvariable=""/>
+	<assign fromexpr="" outputvariable=""/>
+	<foreach items="" variable=""></foreach> 
+</mashup>
