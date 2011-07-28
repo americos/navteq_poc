@@ -1,0 +1,2229 @@
+<mashup xmlns:xsi= "http://www.w3.org/2001/XMLSchema-instance" 
+ 	 xsi:schemaLocation="http://www.openmashup.org/schemas/v1.0/EMML/../schemas/EMMLPrestoSpec.xsd" 
+ 	 xmlns="http://www.openmashup.org/schemas/v1.0/EMML" 
+ 	 xmlns:macro="http://www.openmashup.org/schemas/v1.0/EMMLMacro" 
+ 	 name = "all_in_one_name_derivation" >
+ 
+   <operation name="runMashup" >
+    <variable name="limitRecords" type="number" default="-2"/>
+    
+    <output output-encoding="UTF-8"  wires_id="output_0" name="output_0" type="document" service=""/>
+    <input wires_id="inputparam_2" label="macro_input" name="macro_input_2" type="string" default='317112647,51480000,FRESH FRUITS AND VEGETABLES,FRESH FRUITS AND VEGETABLES,,,,,,,,,,,A,9,HETTI JELAK,,,FREUDENBERGSTR. 41-57,,,,,,,GERMANY,BOCHUM,,44809,NORDRHEIN-WESTFALEN,,,,+00.000000,-000.000000,N,424480,FRESH FRUIT AND VEGETABLE MERC,,,,,,,,,,,0,0,00,,,,,,,,,,,,,,,,,317112647,HETTI JELAK,317112647,HETTI JELAK,000000000249758,000000001,00000000,020615,,,000000000,,,,'/>  
+    <input default="new_name_derivation" name="new_field_name" type="string" />
+    
+    
+    <variable name="macro_4_out" type="document" default="" />
+    <variable name="csv_columns" type="string" default="DUNS,SIC1,LOB,SIC1_DESC,SIC2,SIC2_DESC,SIC3,SIC3_DESC,SIC4,SIC4_DESC,SIC5,SIC5_DESC,SIC6,SIC6_DESC,ACD_IND,CHANGE_IND,POI_NAME,FRAN_CD,FRAN_DESC,STREET_ADDRESS,HOUSE_NUMBER,STREET_PREFIX,STREETNAME,STREETTYPE,STREETSUFFIX,STREETLANG,COUNTRY_NAME,CITY,STATE,POSTALCODE,ADMINAREA,FOODTYPE,CHAINID,PHONE,LATITUDE,LONGITUDE,GEO_ACCURACY,NAIC1,NAIC1_DESC,NAIC2,NAIC2_DESC,NAIC3,NAIC3_DESC,NAIC4,NAIC4_DESC,NAIC5,NAIC5_DESC,NAIC6,NAIC6_DESC,STATUS,SUBSID,HIER,DIAS,TSTYLE1,FRAN_CD1,FRAN_DESC1,TSTYLE2,FRAN_CD2,FRAN_DESC2,TSTYLE3,FRAN_CD3,FRAN_DESC3,TSTYLE4,FRAN_CD4,FRAN_DESC4,TSTYLE5,FRAN_CD5,FRAN_DESC5,GLOBAL_ULT,ULT_NAME,GLOBAL_PAR,PAR_NAME,SALES,EMPS_HERE,SQT_FOOTAGE,RPT_DATE,REC_CLASS,COTTAGE,DOM_ULT,TRDSTYL120,MARKET_IND,ADDR_2, "/>
+		
+    <!-- Ignore call to his macro 
+    <macro:name_derivation2 domain="navteqdomain" name="macro_4" outputvariable="macro_4_out" wires_id="macro_4" label="name_derivation2" macro_input="$macro_input_2" new_field_name="new_name_derivation" emmlType="macro"  ></macro:name_derivation2>
+    -->
+    <!-- Start Macro LOGIC -->
+    <!--
+		CHECK TEST OR REAL DATA: Check if using testdata, and from this moment
+		on just use: 'macro_input' to refer to both test and real data
+	-->
+	<if condition="$macro_input_2 = ''">
+		<!-- <display message="empty use test data" />-->
+		<assign fromvariable="test_data" outputvariable="macro_input_2" />
+	</if>
+	
+	
+		<!-- TEST script to get the column name -->
+		<variable name="xml_string" type="string" default="" />
+		<script type="text/javascript"> 
+		<![CDATA[
+			
+			var columns_split = csv_columns.split(",");
+			var data_split = macro_input_2.split(",");
+			
+			xml_string = "<item>";
+			
+			//print("Total Columns: " + columns_split.length);
+			
+			var item_name = "";
+			var item_value = "";
+			var new_value = ""; //This is the value that is going to be added as a new column
+			
+			for(var i = 0; i< columns_split.length; i++){
+				item_name = columns_split[i];
+				item_value = data_split[i];
+				
+				//Uncomment the line below to check the column number
+				//print(i +" : "+ item_name);
+				
+				if(item_name != ""){
+				
+					/*****************************************************************
+					* "...For each record, if TradeStyle120 exists, use this as the
+					* official POI name, if not use POI name"
+					*
+					******************************************************************/
+					if(i == 79){  //79 is TRDSTYL120
+					
+						if(item_value == ""){
+							//Empty, use POINAME in 16
+							new_value = data_split[16];
+						}
+						else{
+							//Has value, so use it.
+							new_value = item_value
+						}
+						
+					}
+					
+					xml_string = xml_string + "<" + columns_split[i] + ">" + item_value +"</" + columns_split[i] + ">";
+					
+					
+				}
+			}
+			
+			//HERE Comes the new element
+			xml_string += "<" + new_field_name + ">" + new_value + "</" + new_field_name + ">"
+			
+			xml_string += "</item>";
+			
+			print("xml_string:"+ xml_string);
+		 ]]> </script>
+		  
+		<variable name="xml_doc" type="document" default=""/>
+		<assign fromvariable="xml_string" outputvariable="macro_4_out" />
+    <!-- End Macro LOGIC -->
+    
+    
+    <sequence  name="Mapper_3" wires_id="Mapper_3" outputvariable="output_0" wires_type="Mapper" inputvariable="macro_4_out" ><constructor outputvariable="ctro1">
+      <dom:Place xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+      </dom:Place>
+      </constructor>
+      <constructor outputvariable="ctro2">
+        <dom:LocationList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:LocationList>
+      </constructor>
+      <constructor outputvariable="ctro3">
+        <dom:Location primary="{$macro_4_out/*:item/*:DUNS/string()}" locationScore="{$macro_4_out/*:item/*:SIC1/string()}" locationId="{$macro_4_out/*:item/*:SIC1_DESC/string()}" supplier="{$macro_4_out/*:item/*:ACD_IND/string()}" label="{$macro_4_out/*:item/*:new_name_derivation/string()}" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <type>{$macro_4_out/*:item/*:SIC2_DESC/string()}</type>
+        </dom:Location>
+      </constructor>
+      <constructor outputvariable="ctro4">
+        <dom:Address xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Address>
+      </constructor>
+      <constructor outputvariable="ctro5">
+        <dom:UnparsedList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:UnparsedList>
+      </constructor>
+      <constructor outputvariable="ctro6">
+        <dom:Unparsed defaultLanguage="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+        </dom:Unparsed>
+      </constructor>
+      <appendresult outputvariable = "ctro5">
+        $ctro6
+      </appendresult>
+      <appendresult outputvariable = "ctro4">
+        $ctro5
+      </appendresult>
+      <constructor outputvariable="ctro7">
+        <dom:ParsedList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:ParsedList>
+      </constructor>
+      <constructor outputvariable="ctro8">
+        <dom:Parsed defaultLanguage="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <dom:HouseNumber></dom:HouseNumber>
+          <dom:Floor></dom:Floor>
+          <dom:Suite></dom:Suite>
+          <dom:Builtup></dom:Builtup>
+          <dom:Order8></dom:Order8>
+          <dom:Order2></dom:Order2>
+          <dom:Order1></dom:Order1>
+          <dom:ISOCountryCode></dom:ISOCountryCode>
+          <dom:PostalCode></dom:PostalCode>
+        </dom:Parsed>
+      </constructor>
+      <constructor outputvariable="ctro9">
+        <dom:StreetName xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:BaseName></dom:BaseName>
+          <dom:StreetType></dom:StreetType>
+          <dom:Prefix></dom:Prefix>
+          <dom:Suffix></dom:Suffix>
+        </dom:StreetName>
+      </constructor>
+      <appendresult outputvariable = "ctro8">
+        $ctro9
+      </appendresult>
+      <appendresult outputvariable = "ctro7">
+        $ctro8
+      </appendresult>
+      <appendresult outputvariable = "ctro4">
+        $ctro7
+      </appendresult>
+      <appendresult outputvariable = "ctro3">
+        $ctro4
+      </appendresult>
+      <constructor outputvariable="ctro10">
+        <dom:GeoPositionList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:GeoPositionList>
+      </constructor>
+      <constructor outputvariable="ctro11">
+        <dom:GeoPosition xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <type></type>
+        </dom:GeoPosition>
+      </constructor>
+      <appendresult outputvariable = "ctro10">
+        $ctro11
+      </appendresult>
+      <appendresult outputvariable = "ctro3">
+        $ctro10
+      </appendresult>
+      <constructor outputvariable="ctro12">
+        <dom:MapReferenceList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:MapReferenceList>
+      </constructor>
+      <constructor outputvariable="ctro13">
+        <dom:MapReference providerName="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:MapReference>
+      </constructor>
+      <constructor outputvariable="ctro14">
+        <dom:Map version="" sequenceNumber="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:PointAddressPvid></dom:PointAddressPvid>
+        </dom:Map>
+      </constructor>
+      <constructor outputvariable="ctro15">
+        <dom:Link linkPvid="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:Spot></dom:Spot>
+        </dom:Link>
+      </constructor>
+      <appendresult outputvariable = "ctro14">
+        $ctro15
+      </appendresult>
+      <appendresult outputvariable = "ctro13">
+        $ctro14
+      </appendresult>
+      <appendresult outputvariable = "ctro12">
+        $ctro13
+      </appendresult>
+      <appendresult outputvariable = "ctro3">
+        $ctro12
+      </appendresult>
+      <appendresult outputvariable = "ctro2">
+        $ctro3
+      </appendresult>
+      <appendresult outputvariable = "ctro1">
+        $ctro2
+      </appendresult>
+      <constructor outputvariable="ctro16">
+        <dom:Identity lastUpdatedTimeStamp="" isDeleted="" publishedTimeStamp="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:PlaceId></dom:PlaceId>
+          <dom:QualityLevel></dom:QualityLevel>
+        </dom:Identity>
+      </constructor>
+      <constructor outputvariable="ctro17">
+        <dom:Supplier supplierTimeStamp="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:SupplierId></dom:SupplierId>
+        </dom:Supplier>
+      </constructor>
+      <constructor outputvariable="ctro18">
+        <dom:SupplierName xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:SupplierName>
+      </constructor>
+      <constructor outputvariable="ctro19">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro18">
+        $ctro19
+      </appendresult>
+      <appendresult outputvariable = "ctro17">
+        $ctro18
+      </appendresult>
+      <appendresult outputvariable = "ctro16">
+        $ctro17
+      </appendresult>
+      <constructor outputvariable="ctro20">
+        <dom:User xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:UserId></dom:UserId>
+          <dom:ApplicationName></dom:ApplicationName>
+        </dom:User>
+      </constructor>
+      <appendresult outputvariable = "ctro16">
+        $ctro20
+      </appendresult>
+      <appendresult outputvariable = "ctro1">
+        $ctro16
+      </appendresult>
+      <constructor outputvariable="ctro21">
+        <dom:Content xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Content>
+      </constructor>
+      <constructor outputvariable="ctro22">
+        <dom:Base xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Base>
+      </constructor>
+      <constructor outputvariable="ctro23">
+        <dom:NameList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:NameList>
+      </constructor>
+      <constructor outputvariable="ctro24">
+        <dom:Name primaryFlag="" categoryReference="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Name>
+      </constructor>
+      <constructor outputvariable="ctro25">
+        <dom:TextList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:TextList>
+      </constructor>
+      <constructor outputvariable="ctro26">
+        <dom:Text xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Text>
+      </constructor>
+      <constructor outputvariable="ctro27">
+        <dom:BaseText default="" shortText="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <type></type>
+          <languageCode></languageCode>
+        </dom:BaseText>
+      </constructor>
+      <appendresult outputvariable = "ctro26">
+        $ctro27
+      </appendresult>
+      <constructor outputvariable="ctro28">
+        <dom:TranslationList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:TranslationList>
+      </constructor>
+      <constructor outputvariable="ctro29">
+        <dom:Translation xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Translation>
+      </constructor>
+      <constructor outputvariable="ctro30">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro29">
+        $ctro30
+      </appendresult>
+      <appendresult outputvariable = "ctro28">
+        $ctro29
+      </appendresult>
+      <appendresult outputvariable = "ctro26">
+        $ctro28
+      </appendresult>
+      <constructor outputvariable="ctro31">
+        <dom:PhoneticList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:PhoneticList>
+      </constructor>
+      <constructor outputvariable="ctro32">
+        <dom:Phonetic xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Phonetic>
+      </constructor>
+      <constructor outputvariable="ctro33">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro32">
+        $ctro33
+      </appendresult>
+      <appendresult outputvariable = "ctro31">
+        $ctro32
+      </appendresult>
+      <appendresult outputvariable = "ctro26">
+        $ctro31
+      </appendresult>
+      <appendresult outputvariable = "ctro25">
+        $ctro26
+      </appendresult>
+      <appendresult outputvariable = "ctro24">
+        $ctro25
+      </appendresult>
+      <appendresult outputvariable = "ctro23">
+        $ctro24
+      </appendresult>
+      <appendresult outputvariable = "ctro22">
+        $ctro23
+      </appendresult>
+      <constructor outputvariable="ctro34">
+        <dom:CategoryList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:CategoryList>
+      </constructor>
+      <constructor outputvariable="ctro35">
+        <dom:Category categorySystem="" primaryFlag="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:CategoryId></dom:CategoryId>
+        </dom:Category>
+      </constructor>
+      <constructor outputvariable="ctro36">
+        <dom:CategoryName xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:CategoryName>
+      </constructor>
+      <constructor outputvariable="ctro37">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro36">
+        $ctro37
+      </appendresult>
+      <appendresult outputvariable = "ctro35">
+        $ctro36
+      </appendresult>
+      <constructor outputvariable="ctro38">
+        <dom:Description xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Description>
+      </constructor>
+      <constructor outputvariable="ctro39">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro38">
+        $ctro39
+      </appendresult>
+      <appendresult outputvariable = "ctro35">
+        $ctro38
+      </appendresult>
+      <constructor outputvariable="ctro40">
+        <dom:Tag xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Tag>
+      </constructor>
+      <constructor outputvariable="ctro41">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro40">
+        $ctro41
+      </appendresult>
+      <appendresult outputvariable = "ctro35">
+        $ctro40
+      </appendresult>
+      <appendresult outputvariable = "ctro34">
+        $ctro35
+      </appendresult>
+      <appendresult outputvariable = "ctro22">
+        $ctro34
+      </appendresult>
+      <constructor outputvariable="ctro42">
+        <dom:ContactList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:ContactList>
+      </constructor>
+      <constructor outputvariable="ctro43">
+        <dom:Contact preferred="" categoryReference="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <type></type>
+          <dom:ContactString></dom:ContactString>
+        </dom:Contact>
+      </constructor>
+      <constructor outputvariable="ctro44">
+        <dom:Label xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Label>
+      </constructor>
+      <constructor outputvariable="ctro45">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro44">
+        $ctro45
+      </appendresult>
+      <appendresult outputvariable = "ctro43">
+        $ctro44
+      </appendresult>
+      <constructor outputvariable="ctro46">
+        <dom:AdditionalContactInfo xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:Extension></dom:Extension>
+          <dom:AreaCode></dom:AreaCode>
+          <dom:CountryCode></dom:CountryCode>
+          <dom:ContactName></dom:ContactName>
+        </dom:AdditionalContactInfo>
+      </constructor>
+      <appendresult outputvariable = "ctro43">
+        $ctro46
+      </appendresult>
+      <appendresult outputvariable = "ctro42">
+        $ctro43
+      </appendresult>
+      <appendresult outputvariable = "ctro22">
+        $ctro42
+      </appendresult>
+      <constructor outputvariable="ctro47">
+        <dom:ChainList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:ChainList>
+      </constructor>
+      <constructor outputvariable="ctro48">
+        <dom:Chain xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:Id></dom:Id>
+        </dom:Chain>
+      </constructor>
+      <constructor outputvariable="ctro49">
+        <dom:Name xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Name>
+      </constructor>
+      <constructor outputvariable="ctro50">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro49">
+        $ctro50
+      </appendresult>
+      <appendresult outputvariable = "ctro48">
+        $ctro49
+      </appendresult>
+      <constructor outputvariable="ctro51">
+        <dom:ChainFamily xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:Id></dom:Id>
+        </dom:ChainFamily>
+      </constructor>
+      <constructor outputvariable="ctro52">
+        <dom:Name xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Name>
+      </constructor>
+      <constructor outputvariable="ctro53">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro52">
+        $ctro53
+      </appendresult>
+      <appendresult outputvariable = "ctro51">
+        $ctro52
+      </appendresult>
+      <appendresult outputvariable = "ctro48">
+        $ctro51
+      </appendresult>
+      <constructor outputvariable="ctro54">
+        <dom:LogoList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:LogoList>
+      </constructor>
+      <constructor outputvariable="ctro55">
+        <dom:Logo xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:Logo></dom:Logo>
+        </dom:Logo>
+      </constructor>
+      <constructor outputvariable="ctro56">
+        <dom:Label xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Label>
+      </constructor>
+      <constructor outputvariable="ctro57">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro56">
+        $ctro57
+      </appendresult>
+      <appendresult outputvariable = "ctro55">
+        $ctro56
+      </appendresult>
+      <appendresult outputvariable = "ctro54">
+        $ctro55
+      </appendresult>
+      <appendresult outputvariable = "ctro48">
+        $ctro54
+      </appendresult>
+      <appendresult outputvariable = "ctro47">
+        $ctro48
+      </appendresult>
+      <appendresult outputvariable = "ctro22">
+        $ctro47
+      </appendresult>
+      <constructor outputvariable="ctro58">
+        <dom:ExternalReferenceList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:ExternalReferenceList>
+      </constructor>
+      <constructor outputvariable="ctro59">
+        <dom:ExternalReference version="" categoryReference="" system="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:ExternalReference>
+      </constructor>
+      <constructor outputvariable="ctro60">
+        <dom:ExternalReferenceID xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <type></type>
+        </dom:ExternalReferenceID>
+      </constructor>
+      <appendresult outputvariable = "ctro59">
+        $ctro60
+      </appendresult>
+      <appendresult outputvariable = "ctro58">
+        $ctro59
+      </appendresult>
+      <appendresult outputvariable = "ctro22">
+        $ctro58
+      </appendresult>
+      <constructor outputvariable="ctro61">
+        <dom:DerivedTagList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:DerivedTagList>
+      </constructor>
+      <constructor outputvariable="ctro62">
+        <dom:DerivedTag xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:DerivedTag>
+      </constructor>
+      <constructor outputvariable="ctro63">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro62">
+        $ctro63
+      </appendresult>
+      <appendresult outputvariable = "ctro61">
+        $ctro62
+      </appendresult>
+      <appendresult outputvariable = "ctro22">
+        $ctro61
+      </appendresult>
+      <appendresult outputvariable = "ctro21">
+        $ctro22
+      </appendresult>
+      <constructor outputvariable="ctro64">
+        <dom:Extended xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Extended>
+      </constructor>
+      <constructor outputvariable="ctro65">
+        <dom:BrandList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:BrandList>
+      </constructor>
+      <constructor outputvariable="ctro66">
+        <dom:Brand categoryReference="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:BrandId></dom:BrandId>
+        </dom:Brand>
+      </constructor>
+      <constructor outputvariable="ctro67">
+        <dom:Name xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Name>
+      </constructor>
+      <constructor outputvariable="ctro68">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro67">
+        $ctro68
+      </appendresult>
+      <appendresult outputvariable = "ctro66">
+        $ctro67
+      </appendresult>
+      <constructor outputvariable="ctro69">
+        <dom:LogoList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:LogoList>
+      </constructor>
+      <constructor outputvariable="ctro70">
+        <dom:Logo xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:Logo></dom:Logo>
+        </dom:Logo>
+      </constructor>
+      <constructor outputvariable="ctro71">
+        <dom:Label xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Label>
+      </constructor>
+      <constructor outputvariable="ctro72">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro71">
+        $ctro72
+      </appendresult>
+      <appendresult outputvariable = "ctro70">
+        $ctro71
+      </appendresult>
+      <appendresult outputvariable = "ctro69">
+        $ctro70
+      </appendresult>
+      <appendresult outputvariable = "ctro66">
+        $ctro69
+      </appendresult>
+      <appendresult outputvariable = "ctro65">
+        $ctro66
+      </appendresult>
+      <appendresult outputvariable = "ctro64">
+        $ctro65
+      </appendresult>
+      <constructor outputvariable="ctro73">
+        <dom:HoursOfOperationList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:HoursOfOperationList>
+      </constructor>
+      <constructor outputvariable="ctro74">
+        <dom:HoursOfOperation categoryReference="" timeZone="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:Open24hrsFlag></dom:Open24hrsFlag>
+        </dom:HoursOfOperation>
+      </constructor>
+      <constructor outputvariable="ctro75">
+        <dom:OperatingTimeList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:OperatingTimeList>
+      </constructor>
+      <constructor outputvariable="ctro76">
+        <dom:OperatingTime note="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dayOfweek></dayOfweek>
+          <dom:OpeningTime></dom:OpeningTime>
+          <dom:ClosingTime></dom:ClosingTime>
+        </dom:OperatingTime>
+      </constructor>
+      <appendresult outputvariable = "ctro75">
+        $ctro76
+      </appendresult>
+      <appendresult outputvariable = "ctro74">
+        $ctro75
+      </appendresult>
+      <constructor outputvariable="ctro77">
+        <dom:Note xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Note>
+      </constructor>
+      <constructor outputvariable="ctro78">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro77">
+        $ctro78
+      </appendresult>
+      <appendresult outputvariable = "ctro74">
+        $ctro77
+      </appendresult>
+      <constructor outputvariable="ctro79">
+        <dom:InterimDaysOfOperationList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:InterimDaysOfOperationList>
+      </constructor>
+      <constructor outputvariable="ctro80">
+        <dom:InterimDaysOfOperation recursAnnually="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:StartDate></dom:StartDate>
+          <dom:EndDate></dom:EndDate>
+        </dom:InterimDaysOfOperation>
+      </constructor>
+      <constructor outputvariable="ctro81">
+        <dom:OperatingTimeList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:OperatingTimeList>
+      </constructor>
+      <constructor outputvariable="ctro82">
+        <dom:OperatingTime note="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dayOfweek></dayOfweek>
+          <dom:OpeningTime></dom:OpeningTime>
+          <dom:ClosingTime></dom:ClosingTime>
+        </dom:OperatingTime>
+      </constructor>
+      <appendresult outputvariable = "ctro81">
+        $ctro82
+      </appendresult>
+      <appendresult outputvariable = "ctro80">
+        $ctro81
+      </appendresult>
+      <constructor outputvariable="ctro83">
+        <dom:Name xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Name>
+      </constructor>
+      <constructor outputvariable="ctro84">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro83">
+        $ctro84
+      </appendresult>
+      <appendresult outputvariable = "ctro80">
+        $ctro83
+      </appendresult>
+      <constructor outputvariable="ctro85">
+        <dom:Note xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Note>
+      </constructor>
+      <constructor outputvariable="ctro86">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro85">
+        $ctro86
+      </appendresult>
+      <appendresult outputvariable = "ctro80">
+        $ctro85
+      </appendresult>
+      <appendresult outputvariable = "ctro79">
+        $ctro80
+      </appendresult>
+      <appendresult outputvariable = "ctro74">
+        $ctro79
+      </appendresult>
+      <appendresult outputvariable = "ctro73">
+        $ctro74
+      </appendresult>
+      <appendresult outputvariable = "ctro64">
+        $ctro73
+      </appendresult>
+      <constructor outputvariable="ctro87">
+        <dom:PaymentMethodList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:DebitCard></dom:DebitCard>
+        </dom:PaymentMethodList>
+      </constructor>
+      <constructor outputvariable="ctro88">
+        <dom:Cash acceptCash="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:CurrencyType></dom:CurrencyType>
+        </dom:Cash>
+      </constructor>
+      <appendresult outputvariable = "ctro87">
+        $ctro88
+      </appendresult>
+      <constructor outputvariable="ctro89">
+        <dom:CreditCard acceptCreditCard="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:CardType></dom:CardType>
+        </dom:CreditCard>
+      </constructor>
+      <appendresult outputvariable = "ctro87">
+        $ctro89
+      </appendresult>
+      <constructor outputvariable="ctro90">
+        <dom:Check acceptCheck="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:CheckType></dom:CheckType>
+        </dom:Check>
+      </constructor>
+      <appendresult outputvariable = "ctro87">
+        $ctro90
+      </appendresult>
+      <constructor outputvariable="ctro91">
+        <dom:EPayment acceptEPayment="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:EPType></dom:EPType>
+        </dom:EPayment>
+      </constructor>
+      <appendresult outputvariable = "ctro87">
+        $ctro91
+      </appendresult>
+      <constructor outputvariable="ctro92">
+        <dom:Others otherPayment="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:Type></dom:Type>
+        </dom:Others>
+      </constructor>
+      <appendresult outputvariable = "ctro87">
+        $ctro92
+      </appendresult>
+      <constructor outputvariable="ctro93">
+        <dom:Note xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Note>
+      </constructor>
+      <constructor outputvariable="ctro94">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro93">
+        $ctro94
+      </appendresult>
+      <appendresult outputvariable = "ctro87">
+        $ctro93
+      </appendresult>
+      <appendresult outputvariable = "ctro64">
+        $ctro87
+      </appendresult>
+      <constructor outputvariable="ctro95">
+        <dom:PriceRangeList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:PriceRangeList>
+      </constructor>
+      <constructor outputvariable="ctro96">
+        <dom:PriceRange xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <currencyType></currencyType>
+          <dom:MinRange></dom:MinRange>
+          <dom:MaxRange></dom:MaxRange>
+        </dom:PriceRange>
+      </constructor>
+      <constructor outputvariable="ctro97">
+        <dom:Qualifier xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Qualifier>
+      </constructor>
+      <constructor outputvariable="ctro98">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro97">
+        $ctro98
+      </appendresult>
+      <appendresult outputvariable = "ctro96">
+        $ctro97
+      </appendresult>
+      <constructor outputvariable="ctro99">
+        <dom:Note xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Note>
+      </constructor>
+      <constructor outputvariable="ctro100">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro99">
+        $ctro100
+      </appendresult>
+      <appendresult outputvariable = "ctro96">
+        $ctro99
+      </appendresult>
+      <appendresult outputvariable = "ctro95">
+        $ctro96
+      </appendresult>
+      <appendresult outputvariable = "ctro64">
+        $ctro95
+      </appendresult>
+      <constructor outputvariable="ctro101">
+        <dom:CapacityList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:CapacityList>
+      </constructor>
+      <constructor outputvariable="ctro102">
+        <dom:Capacity xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:MinCapacity></dom:MinCapacity>
+          <dom:MaxCapacity></dom:MaxCapacity>
+        </dom:Capacity>
+      </constructor>
+      <constructor outputvariable="ctro103">
+        <dom:Qualifier xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Qualifier>
+      </constructor>
+      <constructor outputvariable="ctro104">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro103">
+        $ctro104
+      </appendresult>
+      <appendresult outputvariable = "ctro102">
+        $ctro103
+      </appendresult>
+      <appendresult outputvariable = "ctro101">
+        $ctro102
+      </appendresult>
+      <appendresult outputvariable = "ctro64">
+        $ctro101
+      </appendresult>
+      <constructor outputvariable="ctro105">
+        <dom:SpokenLanguageList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:LanguageCode></dom:LanguageCode>
+        </dom:SpokenLanguageList>
+      </constructor>
+      <appendresult outputvariable = "ctro64">
+        $ctro105
+      </appendresult>
+      <constructor outputvariable="ctro106">
+        <dom:QRCodeList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:QRCodeList>
+      </constructor>
+      <constructor outputvariable="ctro107">
+        <dom:QRCode type="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:Code></dom:Code>
+          <dom:Image></dom:Image>
+        </dom:QRCode>
+      </constructor>
+      <constructor outputvariable="ctro108">
+        <dom:Label xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Label>
+      </constructor>
+      <constructor outputvariable="ctro109">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro108">
+        $ctro109
+      </appendresult>
+      <appendresult outputvariable = "ctro107">
+        $ctro108
+      </appendresult>
+      <appendresult outputvariable = "ctro106">
+        $ctro107
+      </appendresult>
+      <appendresult outputvariable = "ctro64">
+        $ctro106
+      </appendresult>
+      <constructor outputvariable="ctro110">
+        <dom:NoteList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:NoteList>
+      </constructor>
+      <constructor outputvariable="ctro111">
+        <dom:Note xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <type></type>
+        </dom:Note>
+      </constructor>
+      <constructor outputvariable="ctro112">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro111">
+        $ctro112
+      </appendresult>
+      <appendresult outputvariable = "ctro110">
+        $ctro111
+      </appendresult>
+      <appendresult outputvariable = "ctro64">
+        $ctro110
+      </appendresult>
+      <constructor outputvariable="ctro113">
+        <dom:InternetConnectionList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:InternetConnectionList>
+      </constructor>
+      <constructor outputvariable="ctro114">
+        <dom:InternetConnection xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <InternetType></InternetType>
+          <dom:AccessFeeType></dom:AccessFeeType>
+        </dom:InternetConnection>
+      </constructor>
+      <constructor outputvariable="ctro115">
+        <dom:WirelessList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:WirelessList>
+      </constructor>
+      <constructor outputvariable="ctro116">
+        <dom:Wireless xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:HotSpotId></dom:HotSpotId>
+        </dom:Wireless>
+      </constructor>
+      <constructor outputvariable="ctro117">
+        <dom:ProviderName xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:ProviderName>
+      </constructor>
+      <constructor outputvariable="ctro118">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro117">
+        $ctro118
+      </appendresult>
+      <appendresult outputvariable = "ctro116">
+        $ctro117
+      </appendresult>
+      <appendresult outputvariable = "ctro115">
+        $ctro116
+      </appendresult>
+      <appendresult outputvariable = "ctro114">
+        $ctro115
+      </appendresult>
+      <appendresult outputvariable = "ctro113">
+        $ctro114
+      </appendresult>
+      <appendresult outputvariable = "ctro64">
+        $ctro113
+      </appendresult>
+      <appendresult outputvariable = "ctro21">
+        $ctro64
+      </appendresult>
+      <constructor outputvariable="ctro119">
+        <dom:Rich xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Rich>
+      </constructor>
+      <constructor outputvariable="ctro120">
+        <dom:FeedbackList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:FeedbackList>
+      </constructor>
+      <constructor outputvariable="ctro121">
+        <dom:Feedback type="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Feedback>
+      </constructor>
+      <constructor outputvariable="ctro122">
+        <dom:FeedbackUser xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:UserId></dom:UserId>
+          <dom:ApplicationName></dom:ApplicationName>
+        </dom:FeedbackUser>
+      </constructor>
+      <appendresult outputvariable = "ctro121">
+        $ctro122
+      </appendresult>
+      <constructor outputvariable="ctro123">
+        <dom:FeedbackSupplier supplierTimeStamp="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:SupplierId></dom:SupplierId>
+        </dom:FeedbackSupplier>
+      </constructor>
+      <constructor outputvariable="ctro124">
+        <dom:SupplierName xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:SupplierName>
+      </constructor>
+      <constructor outputvariable="ctro125">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro124">
+        $ctro125
+      </appendresult>
+      <appendresult outputvariable = "ctro123">
+        $ctro124
+      </appendresult>
+      <appendresult outputvariable = "ctro121">
+        $ctro123
+      </appendresult>
+      <constructor outputvariable="ctro126">
+        <dom:ReviewList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:ReviewList>
+      </constructor>
+      <constructor outputvariable="ctro127">
+        <dom:Review reviewTimeStamp="" categoryReference="" type="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:ReviewId></dom:ReviewId>
+        </dom:Review>
+      </constructor>
+      <constructor outputvariable="ctro128">
+        <dom:Title xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Title>
+      </constructor>
+      <constructor outputvariable="ctro129">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro128">
+        $ctro129
+      </appendresult>
+      <appendresult outputvariable = "ctro127">
+        $ctro128
+      </appendresult>
+      <constructor outputvariable="ctro130">
+        <dom:ReviewText xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:ReviewText>
+      </constructor>
+      <constructor outputvariable="ctro131">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro130">
+        $ctro131
+      </appendresult>
+      <appendresult outputvariable = "ctro127">
+        $ctro130
+      </appendresult>
+      <constructor outputvariable="ctro132">
+        <dom:RatingList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:RatingList>
+      </constructor>
+      <constructor outputvariable="ctro133">
+        <dom:Rating ratingTimeStamp="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <type></type>
+        </dom:Rating>
+      </constructor>
+      <constructor outputvariable="ctro134">
+        <dom:RatingValue ratingId="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <scale></scale>
+        </dom:RatingValue>
+      </constructor>
+      <appendresult outputvariable = "ctro133">
+        $ctro134
+      </appendresult>
+      <appendresult outputvariable = "ctro132">
+        $ctro133
+      </appendresult>
+      <appendresult outputvariable = "ctro127">
+        $ctro132
+      </appendresult>
+      <constructor outputvariable="ctro135">
+        <dom:CommentList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:CommentList>
+      </constructor>
+      <constructor outputvariable="ctro136">
+        <dom:Comment commentTimeStamp="" commentId="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Comment>
+      </constructor>
+      <constructor outputvariable="ctro137">
+        <dom:CommentUser xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:UserId></dom:UserId>
+          <dom:ApplicationName></dom:ApplicationName>
+        </dom:CommentUser>
+      </constructor>
+      <appendresult outputvariable = "ctro136">
+        $ctro137
+      </appendresult>
+      <constructor outputvariable="ctro138">
+        <dom:CommentSupplier supplierTimeStamp="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:SupplierId></dom:SupplierId>
+        </dom:CommentSupplier>
+      </constructor>
+      <constructor outputvariable="ctro139">
+        <dom:SupplierName xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:SupplierName>
+      </constructor>
+      <constructor outputvariable="ctro140">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro139">
+        $ctro140
+      </appendresult>
+      <appendresult outputvariable = "ctro138">
+        $ctro139
+      </appendresult>
+      <appendresult outputvariable = "ctro136">
+        $ctro138
+      </appendresult>
+      <constructor outputvariable="ctro141">
+        <dom:Comment xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Comment>
+      </constructor>
+      <constructor outputvariable="ctro142">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro141">
+        $ctro142
+      </appendresult>
+      <appendresult outputvariable = "ctro136">
+        $ctro141
+      </appendresult>
+      <appendresult outputvariable = "ctro135">
+        $ctro136
+      </appendresult>
+      <appendresult outputvariable = "ctro127">
+        $ctro135
+      </appendresult>
+      <constructor outputvariable="ctro143">
+        <dom:HelpfulFlagList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:HelpfulFlagList>
+      </constructor>
+      <constructor outputvariable="ctro144">
+        <dom:HelpfulFlag helpfulTimeStamp="" isHelpful="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:HelpfulFlag>
+      </constructor>
+      <constructor outputvariable="ctro145">
+        <dom:FlaggedBy xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:UserId></dom:UserId>
+          <dom:ApplicationName></dom:ApplicationName>
+        </dom:FlaggedBy>
+      </constructor>
+      <appendresult outputvariable = "ctro144">
+        $ctro145
+      </appendresult>
+      <constructor outputvariable="ctro146">
+        <dom:FlaggedSupplier supplierTimeStamp="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:SupplierId></dom:SupplierId>
+        </dom:FlaggedSupplier>
+      </constructor>
+      <constructor outputvariable="ctro147">
+        <dom:SupplierName xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:SupplierName>
+      </constructor>
+      <constructor outputvariable="ctro148">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro147">
+        $ctro148
+      </appendresult>
+      <appendresult outputvariable = "ctro146">
+        $ctro147
+      </appendresult>
+      <appendresult outputvariable = "ctro144">
+        $ctro146
+      </appendresult>
+      <appendresult outputvariable = "ctro143">
+        $ctro144
+      </appendresult>
+      <appendresult outputvariable = "ctro127">
+        $ctro143
+      </appendresult>
+      <constructor outputvariable="ctro149">
+        <dom:InappropriateFeedbackList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:InappropriateFeedbackList>
+      </constructor>
+      <constructor outputvariable="ctro150">
+        <dom:InappropriateFeedback id="" inappropriateTimeStamp="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:InappropriateFeedback>
+      </constructor>
+      <constructor outputvariable="ctro151">
+        <dom:InappropriateSupplier supplierTimeStamp="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:SupplierId></dom:SupplierId>
+        </dom:InappropriateSupplier>
+      </constructor>
+      <constructor outputvariable="ctro152">
+        <dom:SupplierName xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:SupplierName>
+      </constructor>
+      <constructor outputvariable="ctro153">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro152">
+        $ctro153
+      </appendresult>
+      <appendresult outputvariable = "ctro151">
+        $ctro152
+      </appendresult>
+      <appendresult outputvariable = "ctro150">
+        $ctro151
+      </appendresult>
+      <constructor outputvariable="ctro154">
+        <dom:InappropriateUser xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:UserId></dom:UserId>
+          <dom:ApplicationName></dom:ApplicationName>
+        </dom:InappropriateUser>
+      </constructor>
+      <appendresult outputvariable = "ctro150">
+        $ctro154
+      </appendresult>
+      <constructor outputvariable="ctro155">
+        <dom:Reason xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Reason>
+      </constructor>
+      <constructor outputvariable="ctro156">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro155">
+        $ctro156
+      </appendresult>
+      <appendresult outputvariable = "ctro150">
+        $ctro155
+      </appendresult>
+      <appendresult outputvariable = "ctro149">
+        $ctro150
+      </appendresult>
+      <appendresult outputvariable = "ctro127">
+        $ctro149
+      </appendresult>
+      <appendresult outputvariable = "ctro126">
+        $ctro127
+      </appendresult>
+      <appendresult outputvariable = "ctro121">
+        $ctro126
+      </appendresult>
+      <constructor outputvariable="ctro157">
+        <dom:PhotoList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:PhotoList>
+      </constructor>
+      <constructor outputvariable="ctro158">
+        <dom:Photo photoTimeStamp="" categoryReference="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <type></type>
+          <dom:PhotoId></dom:PhotoId>
+          <dom:Url></dom:Url>
+        </dom:Photo>
+      </constructor>
+      <constructor outputvariable="ctro159">
+        <dom:Label xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Label>
+      </constructor>
+      <constructor outputvariable="ctro160">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro159">
+        $ctro160
+      </appendresult>
+      <appendresult outputvariable = "ctro158">
+        $ctro159
+      </appendresult>
+      <constructor outputvariable="ctro161">
+        <dom:CommentList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:CommentList>
+      </constructor>
+      <constructor outputvariable="ctro162">
+        <dom:Comment commentTimeStamp="" commentId="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Comment>
+      </constructor>
+      <constructor outputvariable="ctro163">
+        <dom:CommentUser xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:UserId></dom:UserId>
+          <dom:ApplicationName></dom:ApplicationName>
+        </dom:CommentUser>
+      </constructor>
+      <appendresult outputvariable = "ctro162">
+        $ctro163
+      </appendresult>
+      <constructor outputvariable="ctro164">
+        <dom:CommentSupplier supplierTimeStamp="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:SupplierId></dom:SupplierId>
+        </dom:CommentSupplier>
+      </constructor>
+      <constructor outputvariable="ctro165">
+        <dom:SupplierName xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:SupplierName>
+      </constructor>
+      <constructor outputvariable="ctro166">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro165">
+        $ctro166
+      </appendresult>
+      <appendresult outputvariable = "ctro164">
+        $ctro165
+      </appendresult>
+      <appendresult outputvariable = "ctro162">
+        $ctro164
+      </appendresult>
+      <constructor outputvariable="ctro167">
+        <dom:Comment xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Comment>
+      </constructor>
+      <constructor outputvariable="ctro168">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro167">
+        $ctro168
+      </appendresult>
+      <appendresult outputvariable = "ctro162">
+        $ctro167
+      </appendresult>
+      <appendresult outputvariable = "ctro161">
+        $ctro162
+      </appendresult>
+      <appendresult outputvariable = "ctro158">
+        $ctro161
+      </appendresult>
+      <constructor outputvariable="ctro169">
+        <dom:HelpfulFlagList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:HelpfulFlagList>
+      </constructor>
+      <constructor outputvariable="ctro170">
+        <dom:HelpfulFlag helpfulTimeStamp="" isHelpful="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:HelpfulFlag>
+      </constructor>
+      <constructor outputvariable="ctro171">
+        <dom:FlaggedBy xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:UserId></dom:UserId>
+          <dom:ApplicationName></dom:ApplicationName>
+        </dom:FlaggedBy>
+      </constructor>
+      <appendresult outputvariable = "ctro170">
+        $ctro171
+      </appendresult>
+      <constructor outputvariable="ctro172">
+        <dom:FlaggedSupplier supplierTimeStamp="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:SupplierId></dom:SupplierId>
+        </dom:FlaggedSupplier>
+      </constructor>
+      <constructor outputvariable="ctro173">
+        <dom:SupplierName xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:SupplierName>
+      </constructor>
+      <constructor outputvariable="ctro174">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro173">
+        $ctro174
+      </appendresult>
+      <appendresult outputvariable = "ctro172">
+        $ctro173
+      </appendresult>
+      <appendresult outputvariable = "ctro170">
+        $ctro172
+      </appendresult>
+      <appendresult outputvariable = "ctro169">
+        $ctro170
+      </appendresult>
+      <appendresult outputvariable = "ctro158">
+        $ctro169
+      </appendresult>
+      <constructor outputvariable="ctro175">
+        <dom:InappropriateFeedbackList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:InappropriateFeedbackList>
+      </constructor>
+      <constructor outputvariable="ctro176">
+        <dom:InappropriateFeedback id="" inappropriateTimeStamp="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:InappropriateFeedback>
+      </constructor>
+      <constructor outputvariable="ctro177">
+        <dom:InappropriateSupplier supplierTimeStamp="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:SupplierId></dom:SupplierId>
+        </dom:InappropriateSupplier>
+      </constructor>
+      <constructor outputvariable="ctro178">
+        <dom:SupplierName xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:SupplierName>
+      </constructor>
+      <constructor outputvariable="ctro179">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro178">
+        $ctro179
+      </appendresult>
+      <appendresult outputvariable = "ctro177">
+        $ctro178
+      </appendresult>
+      <appendresult outputvariable = "ctro176">
+        $ctro177
+      </appendresult>
+      <constructor outputvariable="ctro180">
+        <dom:InappropriateUser xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:UserId></dom:UserId>
+          <dom:ApplicationName></dom:ApplicationName>
+        </dom:InappropriateUser>
+      </constructor>
+      <appendresult outputvariable = "ctro176">
+        $ctro180
+      </appendresult>
+      <constructor outputvariable="ctro181">
+        <dom:Reason xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Reason>
+      </constructor>
+      <constructor outputvariable="ctro182">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro181">
+        $ctro182
+      </appendresult>
+      <appendresult outputvariable = "ctro176">
+        $ctro181
+      </appendresult>
+      <appendresult outputvariable = "ctro175">
+        $ctro176
+      </appendresult>
+      <appendresult outputvariable = "ctro158">
+        $ctro175
+      </appendresult>
+      <appendresult outputvariable = "ctro157">
+        $ctro158
+      </appendresult>
+      <appendresult outputvariable = "ctro121">
+        $ctro157
+      </appendresult>
+      <constructor outputvariable="ctro183">
+        <dom:MediaList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:MediaList>
+      </constructor>
+      <constructor outputvariable="ctro184">
+        <dom:Media mediaTimeStamp="" categoryReference="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <type></type>
+          <dom:MediaId></dom:MediaId>
+          <dom:Url></dom:Url>
+        </dom:Media>
+      </constructor>
+      <constructor outputvariable="ctro185">
+        <dom:Label xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Label>
+      </constructor>
+      <constructor outputvariable="ctro186">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro185">
+        $ctro186
+      </appendresult>
+      <appendresult outputvariable = "ctro184">
+        $ctro185
+      </appendresult>
+      <constructor outputvariable="ctro187">
+        <dom:CommentList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:CommentList>
+      </constructor>
+      <constructor outputvariable="ctro188">
+        <dom:Comment commentTimeStamp="" commentId="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Comment>
+      </constructor>
+      <constructor outputvariable="ctro189">
+        <dom:CommentUser xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:UserId></dom:UserId>
+          <dom:ApplicationName></dom:ApplicationName>
+        </dom:CommentUser>
+      </constructor>
+      <appendresult outputvariable = "ctro188">
+        $ctro189
+      </appendresult>
+      <constructor outputvariable="ctro190">
+        <dom:CommentSupplier supplierTimeStamp="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:SupplierId></dom:SupplierId>
+        </dom:CommentSupplier>
+      </constructor>
+      <constructor outputvariable="ctro191">
+        <dom:SupplierName xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:SupplierName>
+      </constructor>
+      <constructor outputvariable="ctro192">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro191">
+        $ctro192
+      </appendresult>
+      <appendresult outputvariable = "ctro190">
+        $ctro191
+      </appendresult>
+      <appendresult outputvariable = "ctro188">
+        $ctro190
+      </appendresult>
+      <constructor outputvariable="ctro193">
+        <dom:Comment xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Comment>
+      </constructor>
+      <constructor outputvariable="ctro194">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro193">
+        $ctro194
+      </appendresult>
+      <appendresult outputvariable = "ctro188">
+        $ctro193
+      </appendresult>
+      <appendresult outputvariable = "ctro187">
+        $ctro188
+      </appendresult>
+      <appendresult outputvariable = "ctro184">
+        $ctro187
+      </appendresult>
+      <constructor outputvariable="ctro195">
+        <dom:HelpfulFlagList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:HelpfulFlagList>
+      </constructor>
+      <constructor outputvariable="ctro196">
+        <dom:HelpfulFlag helpfulTimeStamp="" isHelpful="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:HelpfulFlag>
+      </constructor>
+      <constructor outputvariable="ctro197">
+        <dom:FlaggedBy xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:UserId></dom:UserId>
+          <dom:ApplicationName></dom:ApplicationName>
+        </dom:FlaggedBy>
+      </constructor>
+      <appendresult outputvariable = "ctro196">
+        $ctro197
+      </appendresult>
+      <constructor outputvariable="ctro198">
+        <dom:FlaggedSupplier supplierTimeStamp="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:SupplierId></dom:SupplierId>
+        </dom:FlaggedSupplier>
+      </constructor>
+      <constructor outputvariable="ctro199">
+        <dom:SupplierName xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:SupplierName>
+      </constructor>
+      <constructor outputvariable="ctro200">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro199">
+        $ctro200
+      </appendresult>
+      <appendresult outputvariable = "ctro198">
+        $ctro199
+      </appendresult>
+      <appendresult outputvariable = "ctro196">
+        $ctro198
+      </appendresult>
+      <appendresult outputvariable = "ctro195">
+        $ctro196
+      </appendresult>
+      <appendresult outputvariable = "ctro184">
+        $ctro195
+      </appendresult>
+      <constructor outputvariable="ctro201">
+        <dom:InappropriateFeedbackList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:InappropriateFeedbackList>
+      </constructor>
+      <constructor outputvariable="ctro202">
+        <dom:InappropriateFeedback id="" inappropriateTimeStamp="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:InappropriateFeedback>
+      </constructor>
+      <constructor outputvariable="ctro203">
+        <dom:InappropriateSupplier supplierTimeStamp="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:SupplierId></dom:SupplierId>
+        </dom:InappropriateSupplier>
+      </constructor>
+      <constructor outputvariable="ctro204">
+        <dom:SupplierName xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:SupplierName>
+      </constructor>
+      <constructor outputvariable="ctro205">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro204">
+        $ctro205
+      </appendresult>
+      <appendresult outputvariable = "ctro203">
+        $ctro204
+      </appendresult>
+      <appendresult outputvariable = "ctro202">
+        $ctro203
+      </appendresult>
+      <constructor outputvariable="ctro206">
+        <dom:InappropriateUser xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:UserId></dom:UserId>
+          <dom:ApplicationName></dom:ApplicationName>
+        </dom:InappropriateUser>
+      </constructor>
+      <appendresult outputvariable = "ctro202">
+        $ctro206
+      </appendresult>
+      <constructor outputvariable="ctro207">
+        <dom:Reason xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Reason>
+      </constructor>
+      <constructor outputvariable="ctro208">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro207">
+        $ctro208
+      </appendresult>
+      <appendresult outputvariable = "ctro202">
+        $ctro207
+      </appendresult>
+      <appendresult outputvariable = "ctro201">
+        $ctro202
+      </appendresult>
+      <appendresult outputvariable = "ctro184">
+        $ctro201
+      </appendresult>
+      <appendresult outputvariable = "ctro183">
+        $ctro184
+      </appendresult>
+      <appendresult outputvariable = "ctro121">
+        $ctro183
+      </appendresult>
+      <constructor outputvariable="ctro209">
+        <dom:DocumentList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:DocumentList>
+      </constructor>
+      <constructor outputvariable="ctro210">
+        <dom:Document docTimeStamp="" categoryReference="" type="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:DocId></dom:DocId>
+          <dom:Url></dom:Url>
+        </dom:Document>
+      </constructor>
+      <constructor outputvariable="ctro211">
+        <dom:Title xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Title>
+      </constructor>
+      <constructor outputvariable="ctro212">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro211">
+        $ctro212
+      </appendresult>
+      <appendresult outputvariable = "ctro210">
+        $ctro211
+      </appendresult>
+      <constructor outputvariable="ctro213">
+        <dom:CommentList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:CommentList>
+      </constructor>
+      <constructor outputvariable="ctro214">
+        <dom:Comment commentTimeStamp="" commentId="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Comment>
+      </constructor>
+      <constructor outputvariable="ctro215">
+        <dom:CommentUser xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:UserId></dom:UserId>
+          <dom:ApplicationName></dom:ApplicationName>
+        </dom:CommentUser>
+      </constructor>
+      <appendresult outputvariable = "ctro214">
+        $ctro215
+      </appendresult>
+      <constructor outputvariable="ctro216">
+        <dom:CommentSupplier supplierTimeStamp="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:SupplierId></dom:SupplierId>
+        </dom:CommentSupplier>
+      </constructor>
+      <constructor outputvariable="ctro217">
+        <dom:SupplierName xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:SupplierName>
+      </constructor>
+      <constructor outputvariable="ctro218">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro217">
+        $ctro218
+      </appendresult>
+      <appendresult outputvariable = "ctro216">
+        $ctro217
+      </appendresult>
+      <appendresult outputvariable = "ctro214">
+        $ctro216
+      </appendresult>
+      <constructor outputvariable="ctro219">
+        <dom:Comment xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Comment>
+      </constructor>
+      <constructor outputvariable="ctro220">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro219">
+        $ctro220
+      </appendresult>
+      <appendresult outputvariable = "ctro214">
+        $ctro219
+      </appendresult>
+      <appendresult outputvariable = "ctro213">
+        $ctro214
+      </appendresult>
+      <appendresult outputvariable = "ctro210">
+        $ctro213
+      </appendresult>
+      <constructor outputvariable="ctro221">
+        <dom:HelpfulFlagList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:HelpfulFlagList>
+      </constructor>
+      <constructor outputvariable="ctro222">
+        <dom:HelpfulFlag helpfulTimeStamp="" isHelpful="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:HelpfulFlag>
+      </constructor>
+      <constructor outputvariable="ctro223">
+        <dom:FlaggedBy xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:UserId></dom:UserId>
+          <dom:ApplicationName></dom:ApplicationName>
+        </dom:FlaggedBy>
+      </constructor>
+      <appendresult outputvariable = "ctro222">
+        $ctro223
+      </appendresult>
+      <constructor outputvariable="ctro224">
+        <dom:FlaggedSupplier supplierTimeStamp="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:SupplierId></dom:SupplierId>
+        </dom:FlaggedSupplier>
+      </constructor>
+      <constructor outputvariable="ctro225">
+        <dom:SupplierName xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:SupplierName>
+      </constructor>
+      <constructor outputvariable="ctro226">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro225">
+        $ctro226
+      </appendresult>
+      <appendresult outputvariable = "ctro224">
+        $ctro225
+      </appendresult>
+      <appendresult outputvariable = "ctro222">
+        $ctro224
+      </appendresult>
+      <appendresult outputvariable = "ctro221">
+        $ctro222
+      </appendresult>
+      <appendresult outputvariable = "ctro210">
+        $ctro221
+      </appendresult>
+      <constructor outputvariable="ctro227">
+        <dom:InappropriateFeedbackList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:InappropriateFeedbackList>
+      </constructor>
+      <constructor outputvariable="ctro228">
+        <dom:InappropriateFeedback id="" inappropriateTimeStamp="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:InappropriateFeedback>
+      </constructor>
+      <constructor outputvariable="ctro229">
+        <dom:InappropriateSupplier supplierTimeStamp="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:SupplierId></dom:SupplierId>
+        </dom:InappropriateSupplier>
+      </constructor>
+      <constructor outputvariable="ctro230">
+        <dom:SupplierName xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:SupplierName>
+      </constructor>
+      <constructor outputvariable="ctro231">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro230">
+        $ctro231
+      </appendresult>
+      <appendresult outputvariable = "ctro229">
+        $ctro230
+      </appendresult>
+      <appendresult outputvariable = "ctro228">
+        $ctro229
+      </appendresult>
+      <constructor outputvariable="ctro232">
+        <dom:InappropriateUser xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:UserId></dom:UserId>
+          <dom:ApplicationName></dom:ApplicationName>
+        </dom:InappropriateUser>
+      </constructor>
+      <appendresult outputvariable = "ctro228">
+        $ctro232
+      </appendresult>
+      <constructor outputvariable="ctro233">
+        <dom:Reason xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Reason>
+      </constructor>
+      <constructor outputvariable="ctro234">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro233">
+        $ctro234
+      </appendresult>
+      <appendresult outputvariable = "ctro228">
+        $ctro233
+      </appendresult>
+      <appendresult outputvariable = "ctro227">
+        $ctro228
+      </appendresult>
+      <appendresult outputvariable = "ctro210">
+        $ctro227
+      </appendresult>
+      <appendresult outputvariable = "ctro209">
+        $ctro210
+      </appendresult>
+      <appendresult outputvariable = "ctro121">
+        $ctro209
+      </appendresult>
+      <constructor outputvariable="ctro235">
+        <dom:UserGeneratedTagList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:UserGeneratedTagList>
+      </constructor>
+      <constructor outputvariable="ctro236">
+        <dom:UserGeneratedTag tagTimeStamp="" categoryReference="" type="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:TagId></dom:TagId>
+        </dom:UserGeneratedTag>
+      </constructor>
+      <constructor outputvariable="ctro237">
+        <dom:Tag xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Tag>
+      </constructor>
+      <constructor outputvariable="ctro238">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro237">
+        $ctro238
+      </appendresult>
+      <appendresult outputvariable = "ctro236">
+        $ctro237
+      </appendresult>
+      <constructor outputvariable="ctro239">
+        <dom:CommentList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:CommentList>
+      </constructor>
+      <constructor outputvariable="ctro240">
+        <dom:Comment commentTimeStamp="" commentId="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Comment>
+      </constructor>
+      <constructor outputvariable="ctro241">
+        <dom:CommentUser xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:UserId></dom:UserId>
+          <dom:ApplicationName></dom:ApplicationName>
+        </dom:CommentUser>
+      </constructor>
+      <appendresult outputvariable = "ctro240">
+        $ctro241
+      </appendresult>
+      <constructor outputvariable="ctro242">
+        <dom:CommentSupplier supplierTimeStamp="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:SupplierId></dom:SupplierId>
+        </dom:CommentSupplier>
+      </constructor>
+      <constructor outputvariable="ctro243">
+        <dom:SupplierName xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:SupplierName>
+      </constructor>
+      <constructor outputvariable="ctro244">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro243">
+        $ctro244
+      </appendresult>
+      <appendresult outputvariable = "ctro242">
+        $ctro243
+      </appendresult>
+      <appendresult outputvariable = "ctro240">
+        $ctro242
+      </appendresult>
+      <constructor outputvariable="ctro245">
+        <dom:Comment xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Comment>
+      </constructor>
+      <constructor outputvariable="ctro246">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro245">
+        $ctro246
+      </appendresult>
+      <appendresult outputvariable = "ctro240">
+        $ctro245
+      </appendresult>
+      <appendresult outputvariable = "ctro239">
+        $ctro240
+      </appendresult>
+      <appendresult outputvariable = "ctro236">
+        $ctro239
+      </appendresult>
+      <constructor outputvariable="ctro247">
+        <dom:HelpfulFlagList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:HelpfulFlagList>
+      </constructor>
+      <constructor outputvariable="ctro248">
+        <dom:HelpfulFlag helpfulTimeStamp="" isHelpful="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:HelpfulFlag>
+      </constructor>
+      <constructor outputvariable="ctro249">
+        <dom:FlaggedBy xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:UserId></dom:UserId>
+          <dom:ApplicationName></dom:ApplicationName>
+        </dom:FlaggedBy>
+      </constructor>
+      <appendresult outputvariable = "ctro248">
+        $ctro249
+      </appendresult>
+      <constructor outputvariable="ctro250">
+        <dom:FlaggedSupplier supplierTimeStamp="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:SupplierId></dom:SupplierId>
+        </dom:FlaggedSupplier>
+      </constructor>
+      <constructor outputvariable="ctro251">
+        <dom:SupplierName xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:SupplierName>
+      </constructor>
+      <constructor outputvariable="ctro252">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro251">
+        $ctro252
+      </appendresult>
+      <appendresult outputvariable = "ctro250">
+        $ctro251
+      </appendresult>
+      <appendresult outputvariable = "ctro248">
+        $ctro250
+      </appendresult>
+      <appendresult outputvariable = "ctro247">
+        $ctro248
+      </appendresult>
+      <appendresult outputvariable = "ctro236">
+        $ctro247
+      </appendresult>
+      <constructor outputvariable="ctro253">
+        <dom:InappropriateFeedbackList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:InappropriateFeedbackList>
+      </constructor>
+      <constructor outputvariable="ctro254">
+        <dom:InappropriateFeedback id="" inappropriateTimeStamp="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:InappropriateFeedback>
+      </constructor>
+      <constructor outputvariable="ctro255">
+        <dom:InappropriateSupplier supplierTimeStamp="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:SupplierId></dom:SupplierId>
+        </dom:InappropriateSupplier>
+      </constructor>
+      <constructor outputvariable="ctro256">
+        <dom:SupplierName xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:SupplierName>
+      </constructor>
+      <constructor outputvariable="ctro257">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro256">
+        $ctro257
+      </appendresult>
+      <appendresult outputvariable = "ctro255">
+        $ctro256
+      </appendresult>
+      <appendresult outputvariable = "ctro254">
+        $ctro255
+      </appendresult>
+      <constructor outputvariable="ctro258">
+        <dom:InappropriateUser xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:UserId></dom:UserId>
+          <dom:ApplicationName></dom:ApplicationName>
+        </dom:InappropriateUser>
+      </constructor>
+      <appendresult outputvariable = "ctro254">
+        $ctro258
+      </appendresult>
+      <constructor outputvariable="ctro259">
+        <dom:Reason xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:Reason>
+      </constructor>
+      <constructor outputvariable="ctro260">
+        <dom:Text default="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+          <type></type>
+        </dom:Text>
+      </constructor>
+      <appendresult outputvariable = "ctro259">
+        $ctro260
+      </appendresult>
+      <appendresult outputvariable = "ctro254">
+        $ctro259
+      </appendresult>
+      <appendresult outputvariable = "ctro253">
+        $ctro254
+      </appendresult>
+      <appendresult outputvariable = "ctro236">
+        $ctro253
+      </appendresult>
+      <appendresult outputvariable = "ctro235">
+        $ctro236
+      </appendresult>
+      <appendresult outputvariable = "ctro121">
+        $ctro235
+      </appendresult>
+      <appendresult outputvariable = "ctro120">
+        $ctro121
+      </appendresult>
+      <constructor outputvariable="ctro261">
+        <dom:FeedbackSummary xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:FeedbackSummary>
+      </constructor>
+      <constructor outputvariable="ctro262">
+        <dom:ReviewSummary totalCount="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:SupplierSummary></dom:SupplierSummary>
+        </dom:ReviewSummary>
+      </constructor>
+      <appendresult outputvariable = "ctro261">
+        $ctro262
+      </appendresult>
+      <constructor outputvariable="ctro263">
+        <dom:PhotoSummary totalCount="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:SupplierSummary></dom:SupplierSummary>
+        </dom:PhotoSummary>
+      </constructor>
+      <appendresult outputvariable = "ctro261">
+        $ctro263
+      </appendresult>
+      <constructor outputvariable="ctro264">
+        <dom:MediaSummary totalCount="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:SupplierSummary></dom:SupplierSummary>
+        </dom:MediaSummary>
+      </constructor>
+      <appendresult outputvariable = "ctro261">
+        $ctro264
+      </appendresult>
+      <constructor outputvariable="ctro265">
+        <dom:DocumentSummary totalCount="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:SupplierSummary></dom:SupplierSummary>
+        </dom:DocumentSummary>
+      </constructor>
+      <appendresult outputvariable = "ctro261">
+        $ctro265
+      </appendresult>
+      <constructor outputvariable="ctro266">
+        <dom:UserGeneratedTagSummary totalCount="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:SupplierSummary></dom:SupplierSummary>
+        </dom:UserGeneratedTagSummary>
+      </constructor>
+      <appendresult outputvariable = "ctro261">
+        $ctro266
+      </appendresult>
+      <constructor outputvariable="ctro267">
+        <dom:RatingSummary totalCount="" averageRating="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <dom:SupplierSummary></dom:SupplierSummary>
+        </dom:RatingSummary>
+      </constructor>
+      <appendresult outputvariable = "ctro261">
+        $ctro267
+      </appendresult>
+      <appendresult outputvariable = "ctro120">
+        $ctro261
+      </appendresult>
+      <appendresult outputvariable = "ctro119">
+        $ctro120
+      </appendresult>
+      <constructor outputvariable="ctro268">
+        <dom:AdditionalAttributeList xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+        </dom:AdditionalAttributeList>
+      </constructor>
+      <constructor outputvariable="ctro269">
+        <dom:AdditionalAttribute categoryReference="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <attributeType></attributeType>
+        </dom:AdditionalAttribute>
+      </constructor>
+      <constructor outputvariable="ctro270">
+        <dom:Attribute key="" xmlns:dom="http://api.lcs.navteq.com/1.5/places/domain">
+          <languageCode></languageCode>
+        </dom:Attribute>
+      </constructor>
+      <appendresult outputvariable = "ctro269">
+        $ctro270
+      </appendresult>
+      <appendresult outputvariable = "ctro268">
+        $ctro269
+      </appendresult>
+      <appendresult outputvariable = "ctro119">
+        $ctro268
+      </appendresult>
+      <appendresult outputvariable = "ctro21">
+        $ctro119
+      </appendresult>
+      <appendresult outputvariable = "ctro1">
+        $ctro21
+      </appendresult>
+      <assign fromvariable="ctro1" outputvariable = "output_0"/></sequence>
+    
+    
+  </operation>
+</mashup>
