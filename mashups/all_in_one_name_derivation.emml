@@ -7,7 +7,7 @@
    <operation name="runMashup" >
     <variable name="limitRecords" type="number" default="-2"/>
     
-    <output output-encoding="UTF-8"  wires_id="output_0" name="output_0" type="document" service=""/>
+    <output output-encoding="UTF-8"  wires_id="output_0" name="output_0" type="string" service=""/>
     <input wires_id="inputparam_2" label="macro_input" name="value" type="string" default='317112647,51480000,FRESH FRUITS AND VEGETABLES,FRESH FRUITS AND VEGETABLES,,,,,,,,,,,A,9,HETTI JELAK,,,FREUDENBERGSTR. 41-57,,,,,,,GERMANY,BOCHUM,,44809,NORDRHEIN-WESTFALEN,,,,+00.000000,-000.000000,N,424480,FRESH FRUIT AND VEGETABLE MERC,,,,,,,,,,,0,0,00,,,,,,,,,,,,,,,,,317112647,HETTI JELAK,317112647,HETTI JELAK,000000000249758,000000001,00000000,020615,,,000000000,,,,'/>  
     <input default="new_name_derivation" name="new_field_name" type="string" />
     
