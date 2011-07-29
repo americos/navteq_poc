@@ -1,0 +1,24 @@
+<mashup xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xmlns='http://www.openmashup.org/schemas/v1.0/EMML' xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:ns="http://purl.org/rss/1.0/" name='XmlConversion'>
+
+	<input name="filename" type="string" default="stocks.xml" />
+
+	<output name='result' type='document' />
+
+	<script type="text/javascript" inputvariables="input/stocks.csv"
+		outputvariable="result">
+        <![CDATA[
+            var xmlUtils = new Packages.org.oma.emml.utils.XMLConversionUtils();
+            var reader = new java.io.InputStreamReader(xmlUtils.getClass().getClassLoader().getResourceAsStream(filename));
+            result = xmlUtils.getDocument(reader);
+        	alert(result);
+        ]]>
+       </script>
+
+	<constructor outputvariable="result">
+		<result>
+			{$result/records/record[1]/symbol}
+           </result>
+	</constructor>
+
+
+</mashup>

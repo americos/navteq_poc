@@ -1,0 +1,16 @@
+<mashup xmlns:xsi= "http://www.w3.org/2001/XMLSchema-instance"  xsi:schemaLocation="http://www.openmashup.org/schemas/v1.0/EMML/../schemas/EMMLPrestoSpec.xsd"  xmlns="http://www.openmashup.org/schemas/v1.0/EMML"  xmlns:macro="http://www.openmashup.org/schemas/v1.0/EMMLMacro" name = "EMMLMapReduceJobRunner2" >
+
+    <variable name="response" type="string" />
+    <output name="result" type="document" />
+
+    <script type="text/javascript">
+        <![CDATA[
+     
+      	var job = Packages.com.jackbe.mapreduce.aws.EMMLMapReduce.start("input", "output", "mapScript", "reduceScript");
+      	response = Packages.com.jackbe.mapreduce.aws.EMMLMapReduce.getJobState(job)
+    	]]>
+    </script>
+    
+    <assign outputvariable="result" fromvariable="response" />
+
+</mashup>

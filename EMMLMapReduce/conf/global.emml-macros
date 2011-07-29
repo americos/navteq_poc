@@ -1,0 +1,434 @@
+<?xml version="1.0"?>
+
+<macros xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.openmashup.org/schemas/v1.0/EMML/../schemas/EMMLPrestoSpec.xsd"
+	xmlns="http://www.openmashup.org/schemas/v1.0/EMML" xmlns:presto="http://www.jackbe.com/v1.0/EMMLPrestoExtensions"
+	xmlns:macro="http://www.openmashup.org/schemas/v1.0/EMMLMacro"
+	xmlns:fn="java:org.oma.emml.utils.EMMLFunctions" domain="global">
+
+	<macro name="ConditionalInvoke">
+		<emml-meta name="author">Raj Krishnamurthy(raj@jackbe.com)
+		</emml-meta>
+
+		<input name="service" type="string" />
+		<input name="operation" type="string" />
+		<input name="inputvariables" type="string" />
+		<input name="condition" type="string" default="true()" />
+		<input name="header" type="string" />
+		<input name="limit" type="number" default="-1" />
+		<input name="record" type="string" default="" />
+		<input name="invokeMode" type="string" default="" />
+
+		<output name="result" type="document" />
+
+		<presto:presto-meta name="macrotype">system</presto:presto-meta>
+		<presto:presto-meta name="help">
+			<description>Invokes a service operation based on a condition
+				specified in XPath</description>
+			<parameters>
+				<parameter name="service">Service name</parameter>
+				<parameter name="operation">Operation name</parameter>
+				<parameter name="inputvariables">Inputs to send to this service</parameter>
+				<parameter name="condition">Invoke this service if this condition is
+					true</parameter>
+				<parameter name="header">Optional SOAP header to send to this
+					service</parameter>
+				<parameter name="limit">Maximum number of records the service
+					should return (-1 = global or no limit)</parameter>
+				<parameter name="record">The path to the field that corresponds to
+					a record</parameter>
+				<parameter name="invokeMode">
+					It specifies whether output expected is
+					the default output or if thee
+					service
+					header needs to be used as
+					output Static is used to indicate service
+					header output
+					and dynamic
+					to indicate the regular output 
+                </parameter>
+			</parameters>
+		</presto:presto-meta>
+
+		<if condition="{$condition}">
+			<variable name="responseHeader" type="document" />
+			<if condition="$invokeMode='static'">
+				<variable name="headerContent" type="document" />
+				<constructor outputvariable="headerContent">
+					<header>
+						<returnServiceHeaders>true</returnServiceHeaders>
+						<returnServiceURLWithCredentials>true
+						</returnServiceURLWithCredentials>
+					</header>
+				</constructor>
+				<invoke service="$service" operation="$operation"
+					inputvariables="$inputvariables" header="headerContent"
+					outputvariable="$result" responseHeader="responseHeader" />
+				<else>
+					<invoke service="$service" operation="$operation"
+						inputvariables="$inputvariables" header="{$header}"
+						outputvariable="$result" responseHeader="responseHeader" />
+				</else>
+			</if>
+			<if condition="$invokeMode='static'">
+				<assign outputvariable="result" fromvariable="responseHeader" />
+			</if>
+			<if condition="not ($result instance of xs:string) ">
+
+				<if condition="number($limit) = -1">
+					<script type="text/javascript">
+                            <![CDATA[
+                                var configMgr = Packages.com.jackbe.jbp.sas.management.config.ConfigManager.getInstance()
+                                limit = configMgr.getValueWithDefaults("jems.conditionalinvoke.limit", "-1")
+                            ]]>
+					</script>
+				</if>
+
+
+				<if condition="number($limit) >= 0">
+					<if condition="$record = '' ">
+						<assign outputvariable="record" fromexpr="fn:infergroupXPath($result)" />
+					</if>
+					<if condition="$record != '' ">
+						<variable name="dynamicrecordexpr" type="string" />
+						<template expr="{$record}[position() = 1 to {$limit}]"
+							outputvariable="dynamicrecordexpr" />
+
+						<filter inputvariable="$result" filterexpr="$dynamicrecordexpr"
+							outputvariable="$result" />
+					</if>
+				</if>
+			</if>
+		</if>
+
+	</macro>
+
+	<macro name="extractXML">
+		<input name="fromexpr" type="string" />
+
+		<output name="result" type="document" />
+		<presto:presto-meta name="macrotype">system</presto:presto-meta>
+		<presto:presto-meta name="help">
+			<description>Extracts one XML node from the input</description>
+			<parameters>
+				<parameter name="fromexpr">The path to the field to extract
+				</parameter>
+			</parameters>
+		</presto:presto-meta>
+		<assign fromexpr="$fromexpr" outputvariable="$result"></assign>
+	</macro>
+
+	<macro name="extractValue">
+		<input name="fromexpr" type="string" />
+
+		<output name="result" type="document" />
+		<presto:presto-meta name="macrotype">system</presto:presto-meta>
+		<presto:presto-meta name="help">
+			<description>Extracts the simple content of one XML node
+			</description>
+			<parameters>
+				<parameter name="fromexpr">The path to the field to extract a value
+					from</parameter>
+			</parameters>
+		</presto:presto-meta>
+
+		<assign fromexpr="$fromexpr" outputvariable="$result"></assign>
+	</macro>
+
+	<macro name="GeoAnnotater" xmlns:geo="http://www.w3.org/2003/01/geo/wgs84_pos#"
+		xmlns:y="urn:yahoo:maps">
+
+		<input name="location" type="document" />
+
+		<output name="macroResult" type="document" />
+		<presto:presto-meta name="macrotype">system
+		</presto:presto-meta>
+		<presto:presto-meta name="help">
+			<description>Adds geographic coordinates to Salesforce service
+				results</description>
+			<parameters>
+				<parameter name="location">Input document with location fields (city,
+					state and zip) to add geographic data to</parameter>
+			</parameters>
+		</presto:presto-meta>
+
+		<variables>
+			<variable name="locationstr" type="string" />
+		</variables>
+
+		<assign
+			fromexpr="string-join((  $location//city, $location//state, $location//zip), ',')"
+			outputvariable="$locationstr" />
+
+		<display message="locationstr = " expr="$locationstr" />
+
+		<directinvoke endpoint="http://local.yahooapis.com/MapsService/V1/geocode"
+			appid=".kcC72DV34FYTpAGuwwbV8YGI.DsMBQ0RB9eZARS621ecnHq33c.g1XJV93a64hrdaM3"
+			output="xml" location="$locationstr" outputvariable="$georesult" />
+
+		<annotate variable="location" expr=".">
+			element geo:lat { $georesult//y:Latitude/string() },
+			element geo:long { $georesult//y:Longitude/string() }
+            </annotate>
+
+
+		<assign outputvariable="$macroResult" fromvariable="$location" />
+
+	</macro>
+
+
+	<!--
+		Sample Usage: <macro:CSVFormatter xmlDoc="$feed1"
+		outputvariable="csv"/>
+	-->
+	<macro name="FormatAsCSV">
+		<input name="xmldoc" type="document" />
+		<output name="csvdoc" type="string" />
+
+		<presto:presto-meta name="macrotype">system</presto:presto-meta>
+		<presto:presto-meta name="help">
+			<description>Formats the input document as comma-separated-values (CSV)</description>
+			<parameters>
+				<parameter name="xmldoc">Input document to convert to CSV format
+				</parameter>
+			</parameters>
+		</presto:presto-meta>
+
+		<variable name="dynamicExpr" type="string" />
+		<variable name="headerExpr" type="string" />
+		<variable name="resultStr" type="string" />
+		<variable name="header" type="boolean" default="true" />
+		<variable name="collectionroot" type="string" />
+
+		<presto:presto-meta name="parameterType">
+			<parameters>
+				<parameter name="collectionroot">
+					<type>xpath</type>
+					<reference>xmldoc</reference>
+				</parameter>
+			</parameters>
+		</presto:presto-meta>
+
+		<assign outputvariable="collectionroot" fromexpr="fn:infergroupXPath($xmldoc)" />
+
+		<if condition="$collectionroot != '' ">
+			<if condition="$header = true()">
+
+				<template expr="string-join($xmldoc{$collectionroot}[1]/*/name(.), ', ')"
+					outputvariable="$headerExpr" />
+
+				<assign fromexpr="{$headerExpr}" outputvariable="$csvdoc" />
+
+				<assign fromexpr="concat($csvdoc, '&#xA;')" outputvariable="$csvdoc" />
+
+			</if>
+
+
+			<template expr="$xmldoc{$collectionroot}" outputvariable="$dynamicExpr" />
+
+			<foreach variable="itm" items="{$dynamicExpr}">
+				<assign fromexpr="string-join($itm/*, ',')" outputvariable="$resultStr" />
+
+				<assign fromexpr="concat($csvdoc, $resultStr)"
+					outputvariable="$csvdoc" />
+
+				<assign fromexpr="concat($csvdoc, '&#xA;')" outputvariable="$csvdoc" />
+
+			</foreach>
+			<else>
+				<assign literal="Unable to format in CSV - No data group found."
+					outputvariable="csvdoc" />
+			</else>
+		</if>
+
+	</macro>
+
+
+	<!--
+		Sample usage <macro:XMLConstructorFromFile filename="jems-ext.xml"
+		outputvariable="output"/>
+	-->
+	<macro name="XMLConstructorFromFile">
+		<input name="filename" type="string" />
+		<output name="doc" type="document" />
+		<presto:presto-meta name="macrotype">system
+		</presto:presto-meta>
+		<presto:presto-meta name="help">
+			<description>Opens an XML file located in the Mashup Server web-app
+			</description>
+			<parameters>
+				<parameter name="filename">Name of the file to import</parameter>
+			</parameters>
+		</presto:presto-meta>
+
+		<script type="text/javascript">
+        <![CDATA[
+            var statemanager = Packages.com.jackbe.jbp.sas.common.JBPStateManager.getInstance();
+
+            var macrosFile = statemanager.getFileResourceAsString(filename);
+
+            doc = Packages.com.jackbe.jbp.sas.nsd.NSDUtil.XMLToDOM(macrosFile)
+
+        ]]>
+		</script>
+	</macro>
+
+
+	<macro name="executeDynamicEMML">
+		<input name="script" type="string" />
+		<output name="result" type="document" />
+		<presto:presto-meta name="macrotype">system
+		</presto:presto-meta>
+
+		<variables>
+			<variable name="resultStr" type="string" />
+		</variables>
+
+		<script type="javascript">
+        <![CDATA[
+            var server =  new Packages.com.jackbe.jbp.jems.moe.runtime.JEMSDesignerImpl()
+            resultStr = server.execute(script);
+            ]]>
+		</script>
+
+		<assign fromvariable="resultStr" outputvariable="result" />
+
+	</macro>
+
+
+	<macro name="computeBasicAuth">
+		<input name="user" type="string" />
+		<input name="password" type="string" />
+		<output name="basicauth" type="string" />
+		<presto:presto-meta name="macrotype">system
+		</presto:presto-meta>
+
+		<script type="text/javascript">
+                <![CDATA[
+                var userPassword =  new Packages.java.lang.String(user + ":" + password);
+                basicauth = "Basic " +
+                            Packages.sun.misc.BASE64Encoder().encode (userPassword.getBytes());
+                ]]>
+		</script>
+
+	</macro>
+
+	<macro name="getRSS">
+		<output name="result" type="document" />
+
+		<presto:presto-meta name="icon">rss.gif</presto:presto-meta>
+		<presto:presto-meta name="macrotype">system</presto:presto-meta>
+
+		<input name="xmldoc" type="document" />
+
+		<input name="itemPath" type="string" />
+		<presto:presto-meta name="type" variable="itemPath"
+			reference="xmldoc">datapath</presto:presto-meta>
+		<presto:presto-meta name="label" variable="itemPath">Item
+			(Repeating Element)</presto:presto-meta>
+
+		<input name="itemTitle" type="string" />
+		<presto:presto-meta name="type" variable="itemTitle"
+			reference="itemPath">template</presto:presto-meta>
+		<presto:presto-meta name="label" variable="itemTitle">Title
+		</presto:presto-meta>
+
+		<input name="itemDescription" type="string" />
+		<presto:presto-meta name="type" variable="itemDescription"
+			reference="itemPath">template</presto:presto-meta>
+		<presto:presto-meta name="label" variable="itemDescription">Description
+		</presto:presto-meta>
+
+		<input name="itemLink" type="string" />
+		<presto:presto-meta name="type" variable="itemLink"
+			reference="itemPath">template</presto:presto-meta>
+		<presto:presto-meta name="label" variable="itemLink">Link
+		</presto:presto-meta>
+
+		<input name="channelTitle" type="string" />
+		<presto:presto-meta name="type" variable="channelTitle"
+			reference="xmldoc">template</presto:presto-meta>
+		<presto:presto-meta name="label" variable="channelTitle">Channel
+			Title</presto:presto-meta>
+
+		<input name="channelDescription" type="string" />
+		<presto:presto-meta name="type" variable="channelDescription"
+			reference="xmldoc">template</presto:presto-meta>
+		<presto:presto-meta name="label" variable="channelDescription">Channel
+			Description</presto:presto-meta>
+
+		<input name="channelLink" type="string" />
+		<presto:presto-meta name="type" variable="channelLink"
+			reference="xmldoc">template</presto:presto-meta>
+		<presto:presto-meta name="label" variable="channelLink">Channel
+			Link</presto:presto-meta>
+
+		<presto:presto-meta name="help">
+			<description>into RSS</description>
+			<parameters>
+				<parameter name="xmldoc">Document that needs to be transformed into
+					an RSS document</parameter>
+				<parameter name="itemPath">Path to a repeating element that will be
+					transformed into an RSS Item</parameter>
+				<parameter name="itemTitle">A template for RSS item's title. A
+					template can consist of one or more tokens to replaced with the
+					value contained in the path within</parameter>
+				<parameter name="itemDescription">A template for RSS item's Description. A
+					template can consist of one or more tokens to replaced with the
+					value contained in the path within</parameter>
+				<parameter name="itemLink">A template for RSS item's link</parameter>
+				<parameter name="channelTitle">A template for RSS channel's title
+				</parameter>
+				<parameter name="channelDescription">A template for RSS channel's description
+				</parameter>
+				<parameter name="channelLink">A template for RSS channel's link
+				</parameter>
+			</parameters>
+		</presto:presto-meta>
+
+		<variable name="script" type="string" />
+		<variable name="docStr" type="string" />
+
+		<variable name="resultStr" type="string" />
+
+		<assign fromvariable="xmldoc" outputvariable="docStr" />
+		<script type="javascript">
+        <![CDATA[
+            var rgx=/\[([^\]]+)\]/g;
+            itemTitle=itemTitle.replace(rgx,"{$item$1}");
+            itemDescription=itemDescription.replace(rgx,"{$item$1}");
+            itemLink=itemLink.replace(rgx,"{$item$1}");
+            channelTitle=channelTitle.replace(rgx,"{$doc$1}");
+            channelDescription=channelDescription.replace(rgx,"{$doc$1}");
+            channelLink=channelLink.replace(rgx,"{$doc$1}");
+            var script= '<mashup name="" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.jackbe.com/2008-03-01/EMMLSchema../src/schemas/EMMLSpec.xsd" xmlns="http://www.jackbe.com/2008-03-01/EMMLSchema" xmlns:macro="http://www.jackbe.com/2008-03-01/EMMLMacro" ><operation name="invoke"><output name="result" type="document"/><variable name="channel" type="document"/>'+
+                        '<input name="doc" type="document"/>'+
+                        '<constructor outputvariable="channel"><channel>'+
+                        '<title>'+channelTitle+'</title>'+
+                        '<link>'+channelLink+'</link>'+
+                        '<description>'+channelDescription+'</description>'+
+                        '<language>en-us</language>'+
+                        '<pubDate>{current-dateTime()}</pubDate>'+
+                        '<ttl>60</ttl>'+
+                        '</channel></constructor>'+
+                        '<foreach variable="item" items="$doc'+itemPath+'">'+
+                            '<appendresult outputvariable="channel">'+
+                                '<item>'+
+                                    '<title>'+itemTitle+'</title>'+
+                                    '<description>'+itemDescription+'</description> '+                 
+                                    '<pubDate></pubDate>'+
+                                    '<link>'+itemLink+'</link>'+
+                                '</item>'+
+                            '</appendresult>'+
+                        '</foreach>'+
+                        '<constructor outputvariable="result"><rss version="2.0">{$channel}</rss></constructor></operation></mashup>';
+            var server = new Packages.com.jackbe.jbp.jems.moe.runtime.JEMSDesignerImpl();
+            var params= (new java.util.HashMap())
+            params.put("doc",docStr);
+            resultStr = server.executeWithParams(script,params);
+        ]]>
+		</script>
+		<assign fromvariable="resultStr" outputvariable="result" />
+	</macro>
+
+</macros>
