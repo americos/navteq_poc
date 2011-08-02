@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+
+<project default="jar" basedir="." name="EMMLMapReduce">
+    <tstamp>
+        <format property="build.start.time" pattern="yyyyMMdd_HHmm" />
+    </tstamp>
+    <property environment="env" />
+    <property file="build.properties" />
+    
+    <property name="src.dir" value="${basedir}/src" />
+  	<property name="test.dir" value="${basedir}/test" />
+  	<property name="build.dir" value="${basedir}/build" />  	
+  	<property name="classes.dir" value="${build.dir}/classes" />
+  	<property name="lib.dir" value="${basedir}/lib" />
+  	<property name="compile.lib.dir" value="${basedir}/compilelib" />
+  	<property name="dist.dir" value="${basedir}/dist" />
+  	<property name="jar.file" value="${dist.dir}/${jar.name}" />  	
+  	
+  	<path id="classpath">
+		<pathelement path="${classes.dir}" />
+		<pathelement path="src" />
+		<fileset dir="${lib.dir}/" includes="*.jar" />
+		<fileset dir="${compile.lib.dir}/" includes="*.jar" />
+	</path>
+	
+	<target name="init">
+    	<mkdir dir="${build.dir}" />
+    	<mkdir dir="${classes.dir}" />
+    	<mkdir dir="${dist.dir}" />
+  	</target>
+  	
+	<target name="clean" description="Removes generated files">
+    	<delete dir="${build.dir}" />
+    	<delete file="${jar.file}" />
+  	</target>
+  
+   <uptodate property="rebuild.notrequired" targetfile="${jar.file}">  
+		<srcfiles dir="${src.dir}" />  
+	</uptodate> 
+		
+ 	<target name="compile" depends="init" unless="rebuild.notrequired">
+    	<javac destdir="${classes.dir}" debug="on" includeAntRuntime="false">
+      		<src path="${src.dir}" />
+      		<classpath refid="classpath" />
+    	</javac>
+  	</target>	
+ 	
+    <target name="jar" depends="compile"  unless="rebuild.notrequired">
+	
+        <jar destfile="${jar.file}" filesetmanifest="mergewithoutmain">
+            <manifest>
+                <attribute name="Built-By" value="Christopher Steel - JackBe"/>
+                <attribute name="Main-Class" value="com.jackbe.mapreduce.EMMLMapReduce"/>
+                <attribute name="Class-Path" value="."/>
+            </manifest>
+            <fileset dir="build/classes"/>
+            <fileset dir="conf"/>
+            <fileset dir="/Users/csteel/workspace/EMMLMapReduce/build/classes"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/csteel/workspace/EMMLMapReduce/lib/hadoop-core-0.20.203.0.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/csteel/workspace/EMMLMapReduce/lib/commons-configuration-1.6.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/csteel/workspace/EMMLMapReduce/lib/commons-httpclient-3.0.1.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/csteel/workspace/EMMLMapReduce/lib/commons-logging-1.1.1.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/csteel/workspace/EMMLMapReduce/lib/jackson-mapper-asl-1.0.1.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/csteel/workspace/EMMLMapReduce/lib/log4j-1.2.15.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/csteel/workspace/EMMLMapReduce/lib/backport-util-concurrent-2.2.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/csteel/workspace/EMMLMapReduce/lib/commons-codec-1.3.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/csteel/workspace/EMMLMapReduce/lib/commons-lang-2.1.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/csteel/workspace/EMMLMapReduce/lib/commons-pool.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/csteel/workspace/EMMLMapReduce/lib/emml.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/csteel/workspace/EMMLMapReduce/lib/jdom.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/csteel/workspace/EMMLMapReduce/lib/saxon8-dom.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/csteel/workspace/EMMLMapReduce/lib/saxon8-xpath.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/csteel/workspace/EMMLMapReduce/lib/saxon8.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/csteel/workspace/EMMLMapReduce/lib/servlet-api.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/csteel/workspace/EMMLMapReduce/lib/Tidy.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/csteel/workspace/EMMLMapReduce/lib/xbean.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/csteel/workspace/EMMLMapReduce/lib/xercesImpl-2.8.1.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/csteel/workspace/EMMLMapReduce/lib/xmlunit-1.1.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/csteel/workspace/EMMLMapReduce/lib/xstream-1.1.3.jar"/>
+            <fileset dir="/Users/csteel/workspace/EMMLMapReduce/lib"/>
+            <fileset dir="/Users/csteel/workspace/EMMLMapReduce/conf"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/csteel/workspace/EMMLMapReduce/lib/aws-java-sdk-1.2.2.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/csteel/workspace/EMMLMapReduce/lib/jackson-core-asl-1.4.3.jar"/>             
+         </jar>
+    </target>
+    
+    <target name="run" description="Launch the application." depends="jar">
+        <java jar="${jarfile}" fork="true" spawn="false" />
+	</target>
+	
+	<target name="install" description="Install locally" depends="jar">
+		<copy file="${jar.file}" toDir="/Users/csteel/Presto/appserver/apache-tomcat-6.0.29/webapps/presto/WEB-INF/lib/" />
+	</target>
+	
+	<target name="upload" description="Upload jar file to Amazon instance" depends="jar">
+		<echo message="Classpath: ${classpath}  ${src.dir}" />
+		<scp file="${jar.file}"
+			toDir="ec2-user@ec2-50-17-132-69.compute-1.amazonaws.com:~/devel/Presto/appserver/apache-tomcat-6.0.29/webapps/presto/WEB-INF/lib/"
+ 			trust="true" keyfile="presto27.pem" passphrase="" />
+ 	</target>
+    
+</project>

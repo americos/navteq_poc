@@ -1,0 +1,158 @@
+<mashup xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.openmashup.org/schemas/v1.0/EMML/../schemas/EMMLPrestoSpec.xsd"
+	xmlns="http://www.openmashup.org/schemas/v1.0/EMML" xmlns:macro="http://www.openmashup.org/schemas/v1.0/EMMLMacro"
+	name="CombinerScript">
+
+	<input name='values1' type='string' />
+	<!--  output name='result' type='document' / -->
+	            
+	<variables>
+    	<variable name="values" type="document">
+    	<quotes>
+<quote>
+   <symbol>TSLA</symbol>
+   <price>30.04</price>
+   <date>7/7/11</date>
+   <time>9:48:14</time>
+   <MapReduceKey>TSLA</MapReduceKey>
+</quote>
+<quote>
+   <symbol>TSLA</symbol>
+   <price>29.55</price>
+   <date>7/7/11</date>
+   <time>9:32:54</time>
+   <MapReduceKey>TSLA</MapReduceKey>
+</quote>
+<quote>
+   <symbol>TSLA</symbol>
+   <price>33.08</price>
+   <date>7/7/11</date>
+   <time>9:38:36</time>
+   <MapReduceKey>TSLA</MapReduceKey>
+</quote>
+<quote>
+   <symbol>TSLA</symbol>
+   <price>32.57</price>
+   <date>7/7/11</date>
+   <time>9:34:33</time>
+   <MapReduceKey>TSLA</MapReduceKey>
+</quote>
+<quote>
+   <symbol>TSLA</symbol>
+   <price>32.95</price>
+   <date>7/7/11</date>
+   <time>9:51:19</time>
+   <MapReduceKey>TSLA</MapReduceKey>
+</quote>
+<quote>
+   <symbol>TSLA</symbol>
+   <price>32.39</price>
+   <date>7/7/11</date>
+   <time>9:49:27</time>
+   <MapReduceKey>TSLA</MapReduceKey>
+</quote>
+<quote>
+   <symbol>TSLA</symbol>
+   <price>30.7</price>
+   <date>7/7/11</date>
+   <time>9:32:10</time>
+   <MapReduceKey>TSLA</MapReduceKey>
+</quote>
+<quote>
+   <symbol>TSLA</symbol>
+   <price>31.52</price>
+   <date>7/7/11</date>
+   <time>9:48:18</time>
+   <MapReduceKey>TSLA</MapReduceKey>
+</quote>
+<quote>
+   <symbol>TSLA</symbol>
+   <price>29.74</price>
+   <date>7/7/11</date>
+   <time>9:46:00</time>
+   <MapReduceKey>TSLA</MapReduceKey>
+</quote>
+<quote>
+   <symbol>TSLA</symbol>
+   <price>28.31</price>
+   <date>7/7/11</date>
+   <time>9:32:48</time>
+   <MapReduceKey>TSLA</MapReduceKey>
+</quote>
+<quote>
+   <symbol>TSLA</symbol>
+   <price>29.67</price>
+   <date>7/7/11</date>
+   <time>9:38:49</time>
+   <MapReduceKey>TSLA</MapReduceKey>
+</quote>
+<quote>
+   <symbol>TSLA</symbol>
+   <price>30.76</price>
+   <date>7/7/11</date>
+   <time>9:32:21</time>
+   <MapReduceKey>TSLA</MapReduceKey>
+</quote>
+<quote>
+   <symbol>TSLA</symbol>
+   <price>34.4</price>
+   <date>7/7/11</date>
+   <time>9:46:02</time>
+   <MapReduceKey>TSLA</MapReduceKey>
+</quote>
+<quote>
+   <symbol>TSLA</symbol>
+   <price>28.92</price>
+   <date>7/7/11</date>
+   <time>9:32:08</time>
+   <MapReduceKey>TSLA</MapReduceKey>
+</quote>
+<quote>
+   <symbol>TSLA</symbol>
+   <price>28.6</price>
+   <date>7/7/11</date>
+   <time>9:51:20</time>
+   <MapReduceKey>TSLA</MapReduceKey>
+</quote>
+<quote>
+   <symbol>TSLA</symbol>
+   <price>34.62</price>
+   <date>7/7/11</date>
+   <time>9:30:38</time>
+   <MapReduceKey>TSLA</MapReduceKey>
+</quote>
+<quote>
+   <symbol>XOM</symbol>
+   <price>95.68</price>
+   <date>7/7/11</date>
+   <time>9:38:48</time>
+   <MapReduceKey>XOM</MapReduceKey>
+</quote>
+			<quote>
+			   <symbol>XOM</symbol>
+			   <price>94.18</price>
+			   <date>7/7/11</date>
+			   <time>9:44:12</time>
+			   <MapReduceKey>XOM</MapReduceKey>
+			</quote>
+			</quotes>
+		</variable>
+	</variables>
+	
+	    <output name="groupedResult" type="document">
+              <symbol/>
+        </output>
+	
+ 	<foreach variable="item" items="distinct-values($values//quotes/quote/symbol)">
+		<display message="symbol = " expr="$item"/>
+		<display message="symbol count = " expr="count($values/quotes/quote[symbol=$item])"/>
+	
+		<!-- Compute sum of quotes for each symbol-->
+		<appendresult outputvariable="groupedResult">
+			<symbol name="{$item}" itemsCount="{count($values//quotes/quote[symbol=$item])}"/>
+		</appendresult>
+	</foreach>
+
+	<display message="groupedresults....." expr="$groupedResult"/>
+
+</mashup>

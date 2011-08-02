@@ -1,0 +1,21 @@
+<mashup xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.openmashup.org/schemas/v1.0/EMML/../schemas/EMMLPrestoSpec.xsd"
+	xmlns="http://www.openmashup.org/schemas/v1.0/EMML" xmlns:macro="http://www.openmashup.org/schemas/v1.0/EMMLMacro"
+	name="CSVParser">
+
+	<input name='values' type='string' default='7/7/11 9:30:02 AM,ORCL,27.94'/>
+	<output name='result' type='document' />
+	
+	<assign fromexpr="tokenize(xs:string($values),',')" outputvariable='quoteInfo' />
+	<assign fromexpr="tokenize(xs:string($quoteInfo[1]),' ')" outputvariable='timedate' />
+	
+	<constructor outputvariable='result'>
+		<quote>
+			<symbol>{$quoteInfo[2]}</symbol>
+			<price>{$quoteInfo[3]}</price>
+			<date>{$timedate[1]}</date>
+			<time>{$timedate[2]}</time>
+		</quote>
+	</constructor>
+</mashup>
+
