@@ -26,12 +26,9 @@ public class EMMLReducer extends MapReduceBase implements Reducer<Text, Text, Te
 	
 	public void reduce(Text key, Iterator<Text> values,
 			OutputCollector<Text, Text> output, Reporter reporter) throws IOException {
-
-/*		while(values.hasNext()) {
-			output.collect(key, values.next());
-		}
-*/		
+		
 		EMMLMapReduce mapReduce;
+		log.debug("called.");
 		try {
 			mapReduce = EMMLMapReduce.getInstance();
 		} catch (Exception e) {
@@ -45,7 +42,6 @@ public class EMMLReducer extends MapReduceBase implements Reducer<Text, Text, Te
 				log.info("Value going in to reduce script: \n" + value);
 			mapReduce.executeScript(mapReduce.reducerScript, key, value, output, EMMLMapReduce.REDUCER_SCRIPT);
 		}
-		
 	} //reduce
 
 } // classe Reduce

@@ -2,9 +2,17 @@ package com.jackbe.mapreduce;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Iterator;
 
+import org.apache.commons.httpclient.Header;
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.HttpMethod;
+import org.apache.commons.httpclient.UsernamePasswordCredentials;
+import org.apache.commons.httpclient.auth.AuthScope;
+import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.commons.httpclient.params.HttpClientParams;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.FileInputFormat;
@@ -19,9 +27,6 @@ import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.log4j.Logger;
 import org.oma.emml.me.runtime.EMMLService;
 import org.oma.emml.me.runtime.EMMLServiceFactory;
-import org.oma.emml.me.runtime.ExecutionContext;
-import org.oma.emml.me.runtime.MashupResponse;
-import org.oma.emml.me.runtime.expr.EmmlVariable;
 
 import com.jackbe.mapreduce.examples.stock.StockExampleEMML;
 
@@ -82,7 +87,7 @@ public class EMMLMapReduce {
 			if (job.mapProgress() == 0.0f) 
 				return 0.0f;
 
-			log.debug("Conf: " + conf.getNumMapTasks() + ":" + conf.getNumReduceTasks() + ":"+ conf.getNumTasksToExecutePerJvm());
+			//log.debug(": " + conf.getNumMapTasks() + ":" + conf.getNumReduceTasks() + ":"+ conf.getNumTasksToExecutePerJvm());
 			return ((job.mapProgress() + job.reduceProgress())/2.0f)*100.0f;
 		} 
 		catch (IOException e) {
@@ -221,10 +226,39 @@ public class EMMLMapReduce {
 			if(log.isDebugEnabled())
 				log.debug("Executing script with key: " + key + " and values: \n----------------------------------\n" + values + "\n---------------------------------------------");
 
-			MashupResponse mashupResponse = emmlService.executeMashupScript(new ExecutionContext(), script, inputParams);
-			EmmlVariable result = mashupResponse.getResult();
+//			MashupResponse mashupResponse = emmlService.executeMashupScript(new ExecutionContext(), script, inputParams);
+//			EmmlVariable result = mashupResponse.getResult();
+//			String resultData = result.getDataAsString();
+			
+			HttpClient client = new HttpClient();
+			client.getState().setCredentials( new AuthScope("localhost", 8080),
+				new UsernamePasswordCredentials("admin", "adminadmin"));
 
-			String resultData = result.getDataAsString();
+			HttpClientParams params = new HttpClientParams();
+			params.setParameter(HttpClientParams.ALLOW_CIRCULAR_REDIRECTS, Boolean.TRUE);
+			client.setParams(params);
+			client.getParams().setAuthenticationPreemptive(true);
+			String value = URLEncoder.encode(values);
+
+			HttpMethod httpMethod = new GetMethod("http://localhost:8080/presto/edge/api/rest/StockQuoteMapper/runMashup?x-presto-resultFormat=xml&value="+value);
+
+			try {
+				client.executeMethod(httpMethod);
+
+				log.debug("Status code: " + httpMethod.getStatusCode());
+				Header contentTypeHeader = httpMethod
+						.getResponseHeader("content-type");
+				log.debug("Mimetype: " + contentTypeHeader.getValue());
+				log.debug("Response: " + httpMethod.getResponseBodyAsString());
+			} finally {
+				httpMethod.releaseConnection();
+			}
+			
+			if(httpMethod.getStatusCode() != 200) {
+				return;
+			}
+
+			String 	resultData = httpMethod.getResponseBodyAsString();
 
 			if(scriptNum == MAPPER_SCRIPT ) {
 				if(log.isDebugEnabled())
@@ -252,15 +286,19 @@ public class EMMLMapReduce {
 					newKey = Long.toString(counter++);
 				}
 			} else {
-				//newKey = Long.toString(counter++);
-				newKey = Long.toString(1);
+				newKey = Long.toString(counter++);
+				//newKey = Long.toString(1);
 			}
-			//if(log.isDebugEnabled())
-			log.debug("Key from result data = " + newKey + " for script: " + scriptNum);
+			if(log.isDebugEnabled()) {
+				log.debug("Key from result data = " + newKey + " for script: " + scriptNum);
+				log.debug("Calling collect with result date = " + resultData);
+			}
+			
 			output.collect(new Text(newKey), new Text(resultData));
 
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.error("Exception executing script: " + e, e);
+			//e.printStackTrace();
 		}		
 	}	
 	
