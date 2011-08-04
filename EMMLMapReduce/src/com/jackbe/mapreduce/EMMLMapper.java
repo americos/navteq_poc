@@ -27,7 +27,7 @@ public class EMMLMapper extends MapReduceBase implements Mapper<LongWritable, Ob
 	public void map(LongWritable key, Object value,
 			OutputCollector<Text, Text> output, Reporter reporter)
 			throws IOException {
-					
+
 		EMMLMapReduce mapReduce;
 		try {
 			mapReduce = EMMLMapReduce.getInstance();

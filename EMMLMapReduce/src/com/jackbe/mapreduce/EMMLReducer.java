@@ -23,10 +23,12 @@ import org.apache.log4j.Logger;
  */
 public class EMMLReducer extends MapReduceBase implements Reducer<Text, Text, Text, Text> {
 	static Logger log = Logger.getLogger(EMMLReducer.class);
-	
+
 	public void reduce(Text key, Iterator<Text> values,
 			OutputCollector<Text, Text> output, Reporter reporter) throws IOException {
+
 		EMMLMapReduce mapReduce;
+		log.debug("called.");
 		try {
 			mapReduce = EMMLMapReduce.getInstance();
 		} catch (Exception e) {

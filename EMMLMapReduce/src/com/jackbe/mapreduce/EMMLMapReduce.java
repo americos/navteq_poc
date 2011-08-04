@@ -2,9 +2,17 @@ package com.jackbe.mapreduce;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Iterator;
 
+import org.apache.commons.httpclient.Header;
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.HttpMethod;
+import org.apache.commons.httpclient.UsernamePasswordCredentials;
+import org.apache.commons.httpclient.auth.AuthScope;
+import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.commons.httpclient.params.HttpClientParams;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.FileInputFormat;
@@ -19,9 +27,6 @@ import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.log4j.Logger;
 import org.oma.emml.me.runtime.EMMLService;
 import org.oma.emml.me.runtime.EMMLServiceFactory;
-import org.oma.emml.me.runtime.ExecutionContext;
-import org.oma.emml.me.runtime.MashupResponse;
-import org.oma.emml.me.runtime.expr.EmmlVariable;
 
 import com.jackbe.mapreduce.examples.stock.StockExampleEMML;
 
@@ -41,7 +46,7 @@ public class EMMLMapReduce {
 	public static int REDUCER_SCRIPT = 2;
 	protected static String MAP_REDUCE_KEY_BEGIN_TAG = "<MapReduceKey>";
 	protected static String MAP_REDUCE_KEY_END_TAG = "</MapReduceKey>";
-	
+
 	private static long counter = 0;
 	static Logger log = Logger.getLogger(EMMLMapReduce.class);
 
@@ -50,7 +55,7 @@ public class EMMLMapReduce {
 		jobClient = new JobClient(conf);
 		emmlService = EMMLServiceFactory.createService();
 	}
-	
+
 	/**
 	 * Method for retrieving the Singleton instance.
 	 *
@@ -66,7 +71,7 @@ public class EMMLMapReduce {
 		}
 		return instance;
 	}
-	
+
 	/**
 	 * This method returns the overall progress of a RunningJob. It retrieves the map progress
 	 * and the reduce progress and returns the sum of those results / 2.
@@ -81,13 +86,17 @@ public class EMMLMapReduce {
 		try {
 			if (job.mapProgress() == 0.0f) 
 				return 0.0f;
-			return (job.mapProgress() + job.reduceProgress())/2.0f;
-		} catch (IOException e) {
+
+			//log.debug(": " + conf.getNumMapTasks() + ":" + conf.getNumReduceTasks() + ":"+ conf.getNumTasksToExecutePerJvm());
+			return ((job.mapProgress() + job.reduceProgress())/2.0f)*100.0f;
+		} 
+		catch (IOException e) {
 			log.error("Exception getting job progress: " + e);
 			return 0.0f;
 		}
+
 	}
-	
+
 	/**
 	 * Utility method for retrieving Job progress using a String id instead of the 
 	 * RunningJob.
@@ -105,7 +114,7 @@ public class EMMLMapReduce {
 		}
 		return getJobProgress(job);
 	}
-	
+
 	public String getJobState(RunningJob job) throws IOException {
 		if(job == null)
 			return "Job is null";
@@ -123,7 +132,7 @@ public class EMMLMapReduce {
 		}
 		return getJobState(job);
 	}
-	
+
 	public String getAllJobs() {
 		RunningJob[] jobsInfo = null;
 		try {
@@ -137,12 +146,12 @@ public class EMMLMapReduce {
 		}
 		// If this is running local, we need to use the Jobs in our map.
 		// TODO: remove old entries eventually.
-		
+
 		if(jobsInfo == null ) {
 			RunningJob[] temp = new RunningJob[statusMap.size()];
 			jobsInfo = statusMap.values().toArray(temp);
 		}
-		
+
 		StringBuffer xml = new StringBuffer();
 		xml.append("<jobs>\n");
 		for(RunningJob job : jobsInfo) {
@@ -156,7 +165,7 @@ public class EMMLMapReduce {
 		xml.append("\n</jobs>");
 		return xml.toString();
 	}
-	
+
 	public void clearCompletedJobs() {
 		for(String key : statusMap.keySet()) {
 			RunningJob job = statusMap.get(key);
@@ -168,7 +177,7 @@ public class EMMLMapReduce {
 			}
 		}
 	}
-	
+
 	/**
 	 * This method is a utility for returning and XML block containing all values passed in
 	 * from the Iterator. The Iterator returns Text values which are converted to Strings
@@ -180,7 +189,7 @@ public class EMMLMapReduce {
 	protected String getValues(Iterator<Text> values) {
 		if(log.isDebugEnabled())
 			log.debug("getValues called.");
-		
+
 		StringBuffer valXml = new StringBuffer();
 		while(values.hasNext()) {
 			String value = values.next().toString();
@@ -190,10 +199,10 @@ public class EMMLMapReduce {
 		}
 		if(log.isDebugEnabled())
 			log.debug("getValues returning: " + valXml.toString());
-		
+
 		return valXml.toString();
 	}
-	
+
 	/**
 	 * This method excecutes the EMML script for a particular step (map, combine, or reduce).
 	 * When a step is called (such as reduce in the Reduce class), it passes this method the
@@ -208,7 +217,7 @@ public class EMMLMapReduce {
 	 */
 	protected void executeScript(String script, Text key, String values, 
 			OutputCollector<Text, Text> output, int scriptNum) {
-		
+
 		try {
 			HashMap<String, String> inputParams = new HashMap<String, String>();
 			inputParams.put("key", key.toString());
@@ -217,10 +226,39 @@ public class EMMLMapReduce {
 			if(log.isDebugEnabled())
 				log.debug("Executing script with key: " + key + " and values: \n----------------------------------\n" + values + "\n---------------------------------------------");
 
-			MashupResponse mashupResponse = emmlService.executeMashupScript(new ExecutionContext(), script, inputParams);
-			EmmlVariable result = mashupResponse.getResult();
+//			MashupResponse mashupResponse = emmlService.executeMashupScript(new ExecutionContext(), script, inputParams);
+//			EmmlVariable result = mashupResponse.getResult();
+//			String resultData = result.getDataAsString();
 
-			String resultData = result.getDataAsString();
+			HttpClient client = new HttpClient();
+			client.getState().setCredentials( new AuthScope("localhost", 8080),
+				new UsernamePasswordCredentials("admin", "adminadmin"));
+
+			HttpClientParams params = new HttpClientParams();
+			params.setParameter(HttpClientParams.ALLOW_CIRCULAR_REDIRECTS, Boolean.TRUE);
+			client.setParams(params);
+			client.getParams().setAuthenticationPreemptive(true);
+			String value = URLEncoder.encode(values);
+
+			HttpMethod httpMethod = new GetMethod("http://localhost:8080/presto/edge/api/rest/StockQuoteMapper/runMashup?x-presto-resultFormat=xml&value="+value);
+
+			try {
+				client.executeMethod(httpMethod);
+
+				log.debug("Status code: " + httpMethod.getStatusCode());
+				Header contentTypeHeader = httpMethod
+						.getResponseHeader("content-type");
+				log.debug("Mimetype: " + contentTypeHeader.getValue());
+				log.debug("Response: " + httpMethod.getResponseBodyAsString());
+			} finally {
+				httpMethod.releaseConnection();
+			}
+
+			if(httpMethod.getStatusCode() != 200) {
+				return;
+			}
+
+			String 	resultData = httpMethod.getResponseBodyAsString();
 
 			if(scriptNum == MAPPER_SCRIPT ) {
 				if(log.isDebugEnabled())
@@ -249,16 +287,21 @@ public class EMMLMapReduce {
 				}
 			} else {
 				newKey = Long.toString(counter++);
+				//newKey = Long.toString(1);
 			}
-			if(log.isDebugEnabled())
-				log.debug("Key from result data = " + newKey);
+			if(log.isDebugEnabled()) {
+				log.debug("Key from result data = " + newKey + " for script: " + scriptNum);
+				log.debug("Calling collect with result date = " + resultData);
+			}
+
 			output.collect(new Text(newKey), new Text(resultData));
 
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.error("Exception executing script: " + e, e);
+			//e.printStackTrace();
 		}		
 	}	
-	
+
 	public RunningJob start(String inputDir, String outputDir, String mapperScript, String reducerScript) throws Exception {
 		if(inputDir == null || outputDir == null || mapperScript == null || reducerScript == null) {
 			if(inputDir == null)
@@ -279,12 +322,15 @@ public class EMMLMapReduce {
 
 		conf = new JobConf(EMMLMapReduce.class);
 		jobClient = new JobClient(conf);
-		
+
 		conf.setOutputKeyClass(Text.class);
 		conf.setOutputValueClass(Text.class);
 
 		conf.setMapperClass(EMMLMapper.class);
 		conf.setReducerClass(EMMLReducer.class);
+		//conf.setNumTasksToExecutePerJvm(100);
+		//conf.setNumMapTasks(50);
+		//conf.setNumReduceTasks(50);
 
 		conf.setJobName("EMMLMapReduce" + System.currentTimeMillis());
 		conf.setSessionId(Long.toString(System.currentTimeMillis()));
@@ -295,10 +341,10 @@ public class EMMLMapReduce {
 		conf.setInputFormat(TextInputFormat.class);
 		//Use our own XML formatter
 		conf.setOutputFormat(XmlOutputFormat.class);  	
-		
+
 		FileInputFormat.setInputPaths(conf, new Path(inputDir));
 		FileOutputFormat.setOutputPath(conf, new Path(outputDir));
-		
+
 		File outputPath = new File(outputDir); 
 		if(outputPath.exists()) {
 			for(String filename : outputPath.list()) { 
@@ -309,18 +355,18 @@ public class EMMLMapReduce {
 			outputPath.delete();
 			log.info("Deleted output directory."); 
 		}
-		 
-		
+
+
 		if(mapperScript != null)
 			setMapperScript(mapperScript);
-		
+
 		if(reducerScript != null)
 			setReducerScript(reducerScript);
-		
+
 		if(combinerScript != null) {
 			setCombinerScript(combinerScript);
 		}
-		
+
 		RunningJob job = null;
 		try {
 			job = jobClient.submitJob(conf);
@@ -331,7 +377,7 @@ public class EMMLMapReduce {
 		}
 		return job;
 	}
-	
+
 	private void setMapperScript(String string) {
 		mapperScript = string;
 	}
@@ -343,7 +389,7 @@ public class EMMLMapReduce {
 	private void setReducerScript(String string) {
 		reducerScript = string;
 	}
-	
+
 	/**
 	 * The main method is called by Hadoop when the program is run in a Hadoop
 	 * cluster and not just in stand-alone mode. Hadoop will copy the runnable jar
@@ -363,7 +409,7 @@ public class EMMLMapReduce {
 		System.out.println("Starting EMML MapReduce.");
 		RunningJob job = null;
 		EMMLMapReduce mapReduce = EMMLMapReduce.getInstance();
-		
+
 		if (args == null || args.length < 2) {
 			job = mapReduce.start("./input", "./output", StockExampleEMML.mapScript, StockExampleEMML.redScript);
 		} 
@@ -384,5 +430,5 @@ public class EMMLMapReduce {
 			log.info("All Job IDs: " + mapReduce.getAllJobs());
 		}
 	} //main
-	
+
 }
